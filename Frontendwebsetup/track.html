@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Recording Selection…</title>
+  <style>
+    :root{ --fg:#f2f2f2; --card:#141414; --radius:14px; }
+    html,body{height:100%}
+    body{
+      margin:0; background:#0a0a0a; color:var(--fg);
+      display:grid; place-items:center; font-family:Arial, sans-serif;
+    }
+    .card{
+      background:var(--card); padding:1.25rem 1.5rem; border-radius:var(--radius);
+      max-width:520px; text-align:center; box-shadow:0 0 22px rgba(0,0,0,.5);
+      border:1px solid #2a2a2a; font-family:Helvetica, Arial, sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1 style="margin:0 0 .5rem; font-size:1.2rem;">Saving your choice…</h1>
+    <p style="color:#b3b3b3; margin:0;">Preparing your experience.</p>
+  </div>
+
+  <script>
+    const NEXT = "search.html";
+    const role = new URLSearchParams(location.search).get("role");
+    if (role) {
+      sessionStorage.setItem("nassRole", JSON.stringify({
+        role, savedAt: new Date().toISOString(), scope: "session"
+      }));
+    }
+    location.replace(NEXT);
+  </script>
+</body>
+</html>
+
