@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Skynet Knowledge Engine — Results</title>
+  <style>
+    :root {
+      --fg:#f2f2f2; --muted:#b3b3b3;
+      --card:#141414; --radius:14px; --border:#2a2a2a;
+      --accent:#ffffff;
+      --focus:#EFF9F0;
+    }
+    body{
+      margin:0; background:#000; color:var(--fg);
+      font-family: Arial, sans-serif;
+      min-height:100vh; display:flex; flex-direction:column;
+      background-image:
+        linear-gradient(to bottom, rgba(0,0,0,.35), rgba(0,0,0,.65)),
+        url("Spacebackground.jpg");
+      background-position:center; background-size:cover;
+      background-repeat:no-repeat; background-attachment:fixed;
+    }
+
+    /* Top bar */
+    .topbar{ display:flex; align-items:center; justify-content:space-between; padding:10px 16px; }
+    .brand-link{
+      display:flex; align-items:center; gap:10px;
+      text-decoration:none;
+    }
+    .brand-logo{ height:22px; width:auto; object-fit:contain; border-radius:3px; }
+    .brand-text{ color:var(--muted); font-size:.95rem; }
+
+    .top-right{ display:flex; align-items:center; gap:10px; }
+    .btn-link{
+      border:1px solid var(--border); background:transparent; color:#e6e6e6;
+      padding:.4rem .7rem; border-radius:9999px; cursor:pointer; font-size:.85rem;
+    }
+    .btn-link:hover{ background:#1a1a1a; }
+
+    /* Main area */
+    .wrap{
+      max-width:960px;
+      margin:0 auto;
+      padding:16px 16px 128px; /* room for floating bottom bar */
+      width:100%;
+    }
+
+    /* ====== Panels layout ====== */
+    .panels{
+      display:grid;
+      grid-template-columns: 2fr 1fr;   /* big left, skinny right */
+      gap:14px;
+      margin:12px 0 28px;
+      align-items:stretch;
+    }
+    .panel{
+      background:#000;
+      border:1px solid var(--border);
+      border-radius:16px;
+      box-shadow:0 0 18px rgba(0,0,0,.45);
+      overflow:hidden;
+      min-height:500px;
+      display:flex; align-items:center; justify-content:center;
+      color:#7a7a7a; font-size:1rem; user-select:none;
+    }
+    .panel-right{
+      display:flex; flex-direction:column; justify-content:space-between;
+      padding:12px; gap:12px;
+      min-width:260px; max-width:300px; /* skinny column feel */
+    }
+    .mini{
+      background:#0a0a0a; border:1px solid var(--border); border-radius:12px;
+      flex:1; min-height:120px;
+      display:flex; align-items:center; justify-content:center;
+      color:#999; font-size:.95rem;
+    }
+    @media (max-width: 820px){
+      .panels{ grid-template-columns: 1fr; }
+      .panel-right{ max-width:none; min-width:0; }
+    }
+
+    /* Results */
+    .results-head{ display:flex; align-items:center; justify-content:flex-end; gap:10px; }
+    .count{ color:var(--muted); font-size:.95rem; }
+    .grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:14px; margin-top:12px; }
+    .card{ background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:14px; box-shadow:0 0 18px rgba(0,0,0,.45); display:flex; flex-direction:column; gap:6px; }
+    .title{ font-weight:700; line-height:1.35; }
+    .meta{ color:var(--muted); font-size:.92rem; }
+    .tags{ display:flex; gap:.4rem; flex-wrap:wrap; margin-top:2px; }
+    .tag{ background:#1a1a1a; border:1px solid var(--border); color:#bdbdbd; font-size:.8rem; padding:.2rem .45rem; border-radius:9999px; }
+    .actions{ margin-top:6px; display:flex; gap:.6rem; }
+    .link{ color:#e6e6e6; text-decoration:none; }
+    .link:hover{ text-decoration:underline; }
+
+    footer{ margin:32px 0 128px; text-align:center; color:#b0b0b0; font-size:.88rem; }
+
+    /* --- Floating chat-style search bar (no background behind it) --- */
+    .bottom-search{
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: transparent; backdrop-filter:none; border-top:none;
+      padding: 12px 0; display:flex; justify-content:center; z-index:100;
+    }
+    .bottom-inner{ width:100%; max-width:600px; padding:0 10px; }
+    .searchbar{
+      display:flex; align-items:center; gap:6px; width:100%;
+      background:#121212; border:2px solid var(--border); border-radius:12px;
+      padding:5px 8px; box-shadow:0 4px 16px rgba(0,0,0,0.5);
+      transition:border-color .15s ease, box-shadow .15s ease;
+    }
+    .searchbar:focus-within{
+      border-color: var(--focus);
+      box-shadow:0 0 0 2px var(--focus), 0 0 12px rgba(0,0,0,0.5);
+    }
+    .searchbar input{
+      flex:1; border:none; background:transparent; color:var(--fg);
+      padding:8px; font-size:0.8rem; outline:none; caret-color: var(--focus);
+    }
+    .btn{
+      border:none; border-radius:9999px; background:var(--accent); color:#000;
+      font-weight:700; padding:8px 12px; font-size:0.8rem; cursor:pointer;
+    }
+    .btn:hover{ background:#e6e6e6; }
+  </style>
+</head>
+<body>
+
+  <!-- Top bar (brand links back to search page) -->
+  <div class="topbar">
+    <!-- 🔗 updated to search.html -->
+    <a class="brand-link" href="search.html" aria-label="Back to Search">
+      <img src="Skynetlogo.jpg" alt="" class="brand-logo" />
+      <span class="brand-text">Skynet Knowledge Engine</span>
+    </a>
+    <div class="top-right">
+      <button id="changeRole" class="btn-link" type="button">Change role</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <!-- Panels -->
+    <section class="panels">
+      <div class="panel">Left Panel</div>
+      <div class="panel panel-right">
+        <div class="mini">Top Box</div>
+        <div class="mini">Middle Box</div>
+        <div class="mini">Bottom Box</div>
+      </div>
+    </section>
+
+    <!-- Results -->
+    <section id="resultsSection">
+      <div class="results-head">
+        <div class="count" id="resultsCount">0 matches</div>
+      </div>
+      <div class="grid" id="resultsGrid"></div>
+      <!-- (removed) emptyMsg -->
+    </section>
+
+    <footer>&copy; 2025 Skynet &amp; Services — All Rights Reserved.</footer>
+  </div>
+
+  <!-- Floating search bar -->
+  <div class="bottom-search">
+    <div class="bottom-inner">
+      <form class="searchbar" id="searchForm" role="search" action="results.html" method="GET">
+        <input id="q" name="q" type="search" placeholder="Type a query and press Enter..." autocomplete="off" />
+        <button class="btn" type="submit">Search</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    /* Placeholder dataset removed per request */
+    const PUBLICATIONS = [];
+
+    const qs = (s, el=document) => el.querySelector(s);
+
+    function renderCard(p){
+      const tags = p.tags.map(t=>`<span class="tag">${t}</span>`).join("");
+      return `
+        <article class="card">
+          <div class="title">${p.title}</div>
+          <div class="meta">${p.authors} — ${p.year} • ${p.venue}</div>
+          <div class="tags">${tags}</div>
+          <div class="actions">
+            <a class="link" href="${p.url}">Open</a>
+            <a class="link" href="#">Save</a>
+          </div>
+        </article>`;
+    }
+
+    function tokenize(q){ return q.toLowerCase().split(/\s+/).filter(Boolean); }
+    function search(data, q){
+      const terms = tokenize(q);
+      if(!terms.length) return [];
+      return data.filter(p=>{
+        const hay = (p.title+" "+p.authors+" "+p.venue+" "+p.tags.join(" ")).toLowerCase();
+        return terms.every(t=>hay.includes(t));
+      });
+    }
+
+    function runSearch(q){
+      const results = search(PUBLICATIONS, q);
+      qs("#resultsCount").textContent = `${results.length} ${results.length===1?"match":"matches"}`;
+      qs("#resultsGrid").innerHTML = results.map(renderCard).join("");
+      /* removed emptyMsg handling */
+    }
+
+    // Init: read ?q=, search, set input
+    (function(){
+      const q = new URLSearchParams(location.search).get("q") || "";
+      qs("#q").value = q;
+      if(q.trim()) runSearch(q.trim());
+      /* removed emptyMsg handling */
+    })();
+
+    // Submit: natural GET, block empty
+    qs("#searchForm").addEventListener("submit", (e)=>{
+      const val = qs("#q").value.trim();
+      if(!val) e.preventDefault();
+    });
+
+    // Optional: role switch (kept top-right)
+    qs("#changeRole").addEventListener("click", ()=>{
+      sessionStorage.removeItem("nassRole");
+      location.href = "role.html";
+    });
+  </script>
+</body>
+</html>

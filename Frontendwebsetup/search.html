@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Skynet Knowledge Engine</title>
+  <style>
+    :root {
+      --fg:#f2f2f2; --muted:#b3b3b3;
+      --card:#141414; --radius:14px; --border:#2a2a2a;
+      --accent:#ffffff;          /* buttons/primary */
+      --focus:#EFF9F0;           /* search focus outline */
+    }
+    body{
+      margin:0;
+      background-color: #000;
+      color: var(--fg);
+      font-family: Arial, sans-serif;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+
+      background-image:
+        linear-gradient(to bottom, rgba(0,0,0,.35), rgba(0,0,0,.65)),
+        url("Spacebackground.jpg");
+      background-position: center center;
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+    }
+
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:10px 16px;
+    }
+    .left-wrap{ display:flex; align-items:center; gap:10px; position:relative; }
+    .brand-logo{ height:22px; width:auto; object-fit:contain; border-radius:3px; pointer-events:none; user-select:none; }
+    .hamburger-label{ color:var(--muted); font-size:.95rem; user-select:none; padding:6px 8px; border-radius:8px; cursor:default; pointer-events:none; }
+
+    .top-right{ display:flex; align-items:center; gap:10px; }
+    .role-pill{
+      display:inline-flex; align-items:center; gap:.45rem; padding:.4rem .7rem;
+      border-radius:9999px; background:#1a1a1a; color:#d9d9d9;
+      font-size:.85rem; border:1px solid var(--border);
+    }
+    .btn-link{
+      border:1px solid var(--border); background:transparent; color:#e6e6e6;
+      padding:.4rem .7rem; border-radius:9999px; cursor:pointer; font-size:.85rem;
+    }
+    .btn-link:hover{ background:#1a1a1a; }
+
+    .wrap{max-width:960px; margin:0 auto; padding:16px 16px 48px; width:100%;}
+    header{ text-align:center; margin:28px 0; }
+    h1{ font-family:Helvetica, Arial, sans-serif; font-size:2.25rem; margin:0 0 8px; }
+    .sub{ color:var(--muted); margin:6px 0 0; font-size:1rem; }
+
+    .search-wrap{ display:flex; justify-content:center; margin:28px 0 16px; }
+    .searchbar{
+      display:flex; align-items:center; gap:10px;
+      width:min(720px, 92vw);
+      background:#121212;
+      border:2px solid var(--border);
+      border-radius:9999px;
+      padding:8px 10px;
+      box-shadow:0 10px 28px rgba(0,0,0,.5);
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .searchbar:focus-within{
+      border-color: var(--focus);
+      box-shadow: 0 0 0 3px var(--focus), 0 10px 28px rgba(0,0,0,.5);
+    }
+    .searchbar input{ flex:1; border:none; background:transparent; color:var(--fg); padding:14px 14px; font-size:1.05rem; outline:none; caret-color: var(--focus); }
+    .btn{ border:none; border-radius:9999px; background:var(--accent); color:#000; font-weight:700; padding:12px 18px; font-size:1rem; cursor:pointer; }
+    .btn:hover{ background:#e6e6e6; }
+
+    .chips{
+      display:flex; gap:8px; flex-wrap:wrap; justify-content:center;
+      margin:4px 0 28px;
+    }
+    .chip{
+      background:#1a1a1a; border:1px solid var(--border); color:var(--muted);
+      font-size:.85rem; padding:.35rem .7rem; border-radius:9999px; cursor:pointer;
+    }
+    .chip:hover{ background:#202020; color:#e6e6e6; }
+
+    h2{ font-family:Helvetica, Arial, sans-serif; font-size:1.25rem; margin:18px 0 12px; text-align:left; }
+    .grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:14px; }
+    .card{ background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:14px; box-shadow:0 0 18px rgba(0,0,0,.45); display:flex; flex-direction:column; gap:6px; }
+    .title{ font-weight:700; line-height:1.35; }
+    .meta{ color:var(--muted); font-size:.92rem; }
+    .tags{ display:flex; gap:.4rem; flex-wrap:wrap; margin-top:2px; }
+    .tag{ background:#1a1a1a; border:1px solid var(--border); color:#bdbdbd; font-size:.8rem; padding:.2rem .45rem; border-radius:9999px; }
+    .actions{ margin-top:6px; display:flex; gap:.6rem; }
+    .link{ color:#e6e6e6; text-decoration:none; }
+    .link:hover{ text-decoration:underline; }
+
+    .results-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .count{ color:var(--muted); font-size:.95rem; }
+    .empty{ color:var(--muted); text-align:center; margin:18px 0 28px; }
+    footer{ margin:32px 0 8px; text-align:center; color:var(--muted); font-size:.9rem; }
+  </style>
+</head>
+<body>
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="left-wrap">
+      <img src="Skynetlogo.jpg" alt="" class="brand-logo" aria-hidden="true" />
+      <span class="hamburger-label">Skynet Knowledge Engine</span>
+    </div>
+    <div class="top-right">
+      <div id="rolePill" class="role-pill" style="display:none"></div>
+      <button id="changeRole" class="btn-link" type="button">Change role</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <header>
+      <h1 id="pageTitle">Explore Space Biology</h1>
+      <p class="sub" id="pageSub">Search NASA bioscience literature and discover key insights.</p>
+    </header>
+
+    <!-- Search -->
+    <div class="search-wrap">
+      <form class="searchbar" id="searchForm" role="search" action="results.html" method="GET">
+        <input id="q" name="q" type="search" placeholder="Search publications (e.g., microgravity gene expression, omics, radiation)" autocomplete="off" />
+        <button class="btn" type="submit">Search</button>
+      </form>
+    </div>
+
+    <!-- Suggested queries -->
+    <div class="chips" id="chips">
+      <button class="chip" data-q="microgravity gene expression">microgravity gene expression</button>
+      <button class="chip" data-q="radiation effects plants">radiation effects plants</button>
+      <button class="chip" data-q="omics spaceflight mice">omics spaceflight mice</button>
+      <button class="chip" data-q="automated phenotyping ISS">automated phenotyping ISS</button>
+    </div>
+
+    <!-- Results (hidden on this page) -->
+    <section id="resultsSection" style="display:none">
+      <div class="results-head">
+        <h2 id="resultsTitle">Results</h2>
+        <div class="count" id="resultsCount"></div>
+      </div>
+      <div class="grid" id="resultsGrid"></div>
+      <div class="empty" id="emptyMsg" style="display:none">No results found. Try a broader query or pick a suggested topic above.</div>
+    </section>
+
+    <!-- Trending -->
+    <section id="trendingSection">
+      <h2>Trending publications</h2>
+      <div class="grid" id="trendGrid"></div>
+    </section>
+
+    <footer>&copy; 2025 Skynet &amp; Services — All Rights Reserved.</footer>
+  </div>
+
+  <script>
+    /** ---------- Demo dataset (unchanged) ---------- */
+    const PUBLICATIONS = [
+      { id: 1, title: "Microgravity-Induced Gene Expression Changes in Mammalian Cells", authors: "J. Smith, L. Chen", year: 2023, venue: "NASA J. Biosciences", tags: ["omics","microgravity","cell biology"], url: "#" },
+      { id: 2, title: "Radiation Effects on Plant Development in Low Earth Orbit", authors: "A. Patel", year: 2022, venue: "Space Botany Letters", tags: ["radiation","plants"], url: "#" },
+      { id: 3, title: "Automated Phenotyping Pipelines for Spaceflight Experiments", authors: "K. Nguyen, R. Diaz", year: 2024, venue: "Systems Bio Eng.", tags: ["automation","pipelines","data"], url: "#" },
+      { id: 4, title: "Omics Profiling of Spaceflight Mice: Multi-Organ Analysis", authors: "H. Wu et al.", year: 2021, venue: "Frontiers in Space Biology", tags: ["omics","mouse","multi-omics"], url: "#" },
+      { id: 5, title: "Radiation Shielding Strategies for Biological Specimens", authors: "T. Alvarez", year: 2020, venue: "Aerospace Biology", tags: ["radiation","shielding","hardware"], url: "#" },
+      { id: 6, title: "Plant Root Morphogenesis Under Simulated Microgravity", authors: "S. Ito", year: 2023, venue: "Space Botany Letters", tags: ["plants","microgravity","development"], url: "#" },
+      { id: 7, title: "In-Flight Automation for Sample Processing on the ISS", authors: "R. Kim", year: 2024, venue: "Systems Ops", tags: ["automation","ISS","protocols"], url: "#" },
+      { id: 8, title: "Radiation-Induced DNA Damage Repair Pathways in Space", authors: "E. Gomez", year: 2022, venue: "Genomics in Space", tags: ["radiation","DNA repair","omics"], url: "#" }
+    ];
+
+    const qs = (sel, el=document) => el.querySelector(sel);
+
+    function renderCard(p) {
+      const tags = p.tags.map(t => `<span class="tag">${t}</span>`).join("");
+      const q = encodeURIComponent(p.title); // NEW: use title as query
+      return `
+        <article class="card">
+          <div class="title">${p.title}</div>
+          <div class="meta">${p.authors} — ${p.year} • ${p.venue}</div>
+          <div class="tags">${tags}</div>
+          <div class="actions">
+            <a class="link" href="results.html?q=${q}">Open</a>
+          </div>
+        </article>`;
+    }
+
+    function renderTrending() {
+      qs("#trendGrid").innerHTML = [1,2,3]
+        .map(i => renderCard(PUBLICATIONS[i-1]))
+        .join("");
+    }
+
+    /** ---------- Init ---------- */
+    (function(){
+      let roleText = "";
+      try {
+        const r = JSON.parse(sessionStorage.getItem("nassRole"));
+        if (r && r.role) {
+          roleText = String(r.role);
+          const pill = qs("#rolePill");
+          pill.textContent = roleText;
+          pill.style.display = "inline-flex";
+        }
+      } catch(_) {}
+
+      const titleEl = qs("#pageTitle");
+      const subEl   = qs("#pageSub");
+      const roleNorm = roleText.toLowerCase();
+
+      if (roleNorm.includes("manager") || roleNorm.includes("investor")) {
+        titleEl.textContent = "Discover Investment Opportunities";
+        subEl.textContent   = "Find promising technologies, market opportunities, and future growth areas in space biology.";
+      } else {
+        titleEl.textContent = "Explore Space Biology";
+        subEl.textContent   = "Search NASA bioscience literature and discover key insights.";
+      }
+    })();
+
+    renderTrending();
+
+    // change role
+    qs("#changeRole").addEventListener("click", () => {
+      sessionStorage.removeItem("nassRole");
+      location.href = "role.html";
+    });
+
+    // Chips → navigate to results.html?q=...
+    qs("#chips").addEventListener("click", (e) => {
+      const chip = e.target.closest("[data-q]");
+      if (!chip) return;
+      const q = chip.getAttribute("data-q");
+      location.href = `results.html?q=${encodeURIComponent(q)}`;
+    });
+
+    // Form submit (allow natural GET; block empty)
+    qs("#searchForm").addEventListener("submit", (e) => {
+      const val = qs("#q").value.trim();
+      if (!val) e.preventDefault();
+    });
+
+    // (If you ever add a hamburger/menu, keep this guard)
+    document.addEventListener("click", (e) => {
+      if (typeof menu !== "undefined" && typeof hamburger !== "undefined") {
+        if (!menu.contains(e.target) && e.target !== hamburger) {
+          menu.classList.remove("open");
+          hamburger.setAttribute("aria-expanded", "false");
+        }
+      }
+    });
+  </script>
+</body>
+</html>
