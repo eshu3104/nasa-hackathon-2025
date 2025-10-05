@@ -1,6 +1,6 @@
 import os
 import json
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import openai
 from dotenv import load_dotenv
 
@@ -45,7 +45,8 @@ def gpt4o_mini_chat(messages: List[Dict[str, str]], max_tokens: int = 400, tempe
     return resp.choices[0].message.content.strip()
 
 def summarize_documents_single_call(search_results: List[tuple], chunks_data: List[Dict[str, Any]], 
-                                  role: str = "Researcher", max_chunks_per_doc: int = 3) -> Dict[str, Any]:
+                                  role: str = "Researcher", max_chunks_per_doc: int = 3,
+                                  messages: Optional[List[Dict[str, str]]] = None) -> Dict[str, Any]:
     """
     Single GPT call summarization pipeline - much faster!
     
@@ -101,6 +102,15 @@ DOCUMENTS TO ANALYZE:
 {all_docs_text}
 """
 
+    # If chat messages (conversation history) are provided, include them to preserve context
+    if messages:
+        try:
+            convo_text = "\n\nCONVERSATION HISTORY:\n" + "\n".join([f"{m.get('role','user')}: {m.get('content','')}" for m in messages])
+            user_prompt += convo_text
+        except Exception:
+            # Ignore formatting errors; continue without conversation history
+            pass
+
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_prompt}
@@ -152,8 +162,9 @@ def final_consolidation(per_doc_summaries: List[str], role: str = "Researcher") 
     return "Legacy function - use summarize_documents_single_call instead"
 
 def summarize_documents(search_results: List[tuple], chunks_data: List[Dict[str, Any]], 
-                       role: str = "Researcher", max_chunks_per_doc: int = 5) -> Dict[str, Any]:
+                       role: str = "Researcher", max_chunks_per_doc: int = 5,
+                       messages: Optional[List[Dict[str, str]]] = None) -> Dict[str, Any]:
     """
     Legacy function - now uses single call for speed.
     """
-    return summarize_documents_single_call(search_results, chunks_data, role, max_chunks_per_doc)
+    return summarize_documents_single_call(search_results, chunks_data, role, max_chunks_per_doc, messages)

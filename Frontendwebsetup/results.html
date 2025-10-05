@@ -228,47 +228,73 @@
     async function startResultsMode(firstQuestion) {
       isResultsMode = true;
       chatHistory = [{role:'user', content:firstQuestion}];
-      qs('#mainContent').innerHTML = `<div style="text-align:center;margin-top:60px;color:#fff;">Loading...</div>`;
+      qs('#mainContent').innerHTML = `<div style='text-align:center;margin-top:60px;color:#fff;'>Loading...</div>`;
       qs('#chatBarContainer').innerHTML = '';
-      // Send to backend
-      const res = await fetch(`${API_BASE}/search`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: firstQuestion,
-          messages: chatHistory,
-          role: 'Researcher',
-          top_docs: 5
-        })
-      });
-      const data = await res.json();
-      lastSummary = data.summary || 'No summary.';
-      lastResults = data.results || [];
-      renderResultsLayout(lastSummary, lastResults);
+      try {
+        const res = await fetch(`${API_BASE}/search`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: firstQuestion,
+            messages: chatHistory,
+            role: 'Researcher',
+            top_docs: 5
+          })
+        });
+        const data = await res.json();
+        console.log('API response:', data); // Debug log
+        lastSummary = data.summary || 'No summary.';
+        lastResults = data.results || [];
+        if (!data.summary || data.summary === 'No summary.') {
+          lastSummary += '<br><span style="color:#ff8080">(No summary received from backend. Check API key and backend logs.)</span>';
+        }
+        renderResultsLayout(lastSummary, lastResults);
+      } catch (err) {
+        qs('#mainContent').innerHTML = `<div style='color:#ff8080;text-align:center;margin-top:60px;'>Error fetching summary.<br>${err}</div>`;
+      }
     }
 
     async function sendFollowup(content){
       chatHistory.push({role:'user', content});
-      qs('#summaryPanel').innerHTML = `<div style="text-align:center;margin-top:60px;color:#fff;">Loading...</div>`;
-      // Send to backend
-      const res = await fetch(`${API_BASE}/search`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: content,
-          messages: chatHistory,
-          role: 'Researcher',
-          top_docs: 5
-        })
-      });
-      const data = await res.json();
-      lastSummary = data.summary || 'No summary.';
-      lastResults = data.results || [];
-      renderResultsLayout(lastSummary, lastResults);
+      qs('#summaryPanel').innerHTML = `<div style='text-align:center;margin-top:60px;color:#fff;'>Loading...</div>`;
+      try {
+        const res = await fetch(`${API_BASE}/search`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: content,
+            messages: chatHistory,
+            role: 'Researcher',
+            top_docs: 5
+          })
+        });
+        const data = await res.json();
+        console.log('API response:', data); // Debug log
+        lastSummary = data.summary || 'No summary.';
+        lastResults = data.results || [];
+        if (!data.summary || data.summary === 'No summary.') {
+          lastSummary += '<br><span style="color:#ff8080">(No summary received from backend. Check API key and backend logs.)</span>';
+        }
+        renderResultsLayout(lastSummary, lastResults);
+      } catch (err) {
+        qs('#summaryPanel').innerHTML = `<div style='color:#ff8080;text-align:center;margin-top:60px;'>Error fetching summary.<br>${err}</div>`;
+      }
     }
 
-    // Initial render
-    renderInitialSearch();
+    // Utility to get query param
+    function getQueryParam(name) {
+      const url = window.location.search;
+      const params = new URLSearchParams(url);
+      return params.get(name);
+    }
+
+    // On page load, check for 'q' param
+    const initialQ = getQueryParam('q');
+    if (initialQ && initialQ.trim()) {
+      startResultsMode(initialQ.trim());
+    } else {
+      renderInitialSearch();
+    }
 
     // Optional: role switch (kept top-right)
     qs('#changeRole').addEventListener('click', ()=>{

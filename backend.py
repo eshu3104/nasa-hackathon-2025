@@ -41,22 +41,22 @@ def get_search():
 @app.route('/')
 def serve_frontend():
     """Serve the role selection page as default"""
-    return send_from_directory('frontend', 'role.html')
+    return send_from_directory('frontendwebsetup', 'role.html')
 
 @app.route('/search')
 def serve_search():
     """Serve the search page"""
-    return send_from_directory('frontend', 'search.html')
+    return send_from_directory('frontendwebsetup', 'search.html')
 
 @app.route('/track.html')
 def serve_track():
     """Serve role tracking page"""
-    return send_from_directory('frontend', 'track.html')
+    return send_from_directory('frontendwebsetup', 'track.html')
 
 @app.route('/<path:filename>')
 def serve_static(filename):
     """Serve static files (images, CSS, JS)"""
-    return send_from_directory('frontend', filename)
+    return send_from_directory('frontendwebsetup', filename)
 
 @app.route('/api/search', methods=['POST'])
 def api_search():
@@ -144,8 +144,10 @@ def api_search():
                 )
             ai_summary = summary_results['final_summary']
         except Exception as e:
-            print(f"⚠️ Summary generation failed: {e}")
-            ai_summary = f"Found {len(results)} relevant documents for your query."
+            import traceback
+            tb = traceback.format_exc()
+            print(f"⚠️ Summary generation failed: {e}\n{tb}")
+            ai_summary = f"Found {len(results)} relevant documents for your query.<br><span style='color:#ff8080'>Summary error: {e}</span>"
         
         return jsonify({
             'results': results,
