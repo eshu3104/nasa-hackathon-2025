@@ -273,11 +273,7 @@
         // Italic text (but not bold)
         .replace(/(?<!\*)\*(?!\*)([^*]+?)\*(?!\*)/g, '<em style="color: var(--muted); font-style: italic;">$1</em>')
         
-        // Numbered lists
-        .replace(/^(\d+)\.\s+(.*$)/gim, '<div style="margin: 0.5rem 0; padding-left: 1.5rem; display: flex; align-items: flex-start;"><span style="color: var(--accent); font-weight: bold; margin-right: 0.5rem; flex-shrink: 0;">$1.</span> <span style="color: var(--muted); flex: 1;">$2</span></div>')
-        
-        // Bullet points
-        .replace(/^[-*]\s+(.*$)/gim, '<div style="margin: 0.3rem 0; padding-left: 1rem; display: flex; align-items: flex-start;"><span style="color: var(--accent); margin-right: 0.5rem; flex-shrink: 0;">•</span> <span style="color: var(--muted); flex: 1;">$1</span></div>')
+  // Remove numbered and bullet list formatting to keep summary as paragraphs
         
         // Links
         .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent);" target="_blank" rel="noopener">$1</a>')

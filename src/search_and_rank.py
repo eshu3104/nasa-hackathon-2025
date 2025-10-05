@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 import re
+from flask import Flask  # Added flask import for potential backend usage
 
 # Load environment variables from .env file
 load_dotenv()
@@ -242,26 +243,19 @@ def example_usage():
 if __name__ == "__main__":
     import sys
     
-    if len(sys.argv) < 2:
+    # If 'serve' is passed as the first argument, run the Flask web server
+    if len(sys.argv) == 2 and sys.argv[1] == "serve":
+        app = Flask(__name__)
+        
+        @app.route("/")
+        def index():
+            return "Search and Rank API is running"
+        
+        app.run(host="0.0.0.0", port=5000, debug=True)
+    else:
+        # Provide CLI usage instructions if not running the server
         print("Usage: python search_and_rank.py <query> [top_k] [role] [mode]")
         print("Example: python search_and_rank.py 'space biology' 10 'Researcher' 'chunks'")
         print("Roles: Researcher, Funding Manager, Student")
         print("Modes: chunks, docs")
-        sys.exit(1)
-    
-    query = sys.argv[1]
-    top_k = int(sys.argv[2]) if len(sys.argv) > 2 else 10
-    role = sys.argv[3] if len(sys.argv) > 3 else 'Researcher'
-    mode = sys.argv[4] if len(sys.argv) > 4 else 'docs'
-    
-    # Initialize search
-    search = SemanticSearch()
-    
-    # Perform search based on mode
-    if mode == 'chunks':
-        search.print_search_results(query, top_k)
-    elif mode == 'docs':
-        search.print_doc_results(query, role, top_k)
-    else:
-        print(f"Unknown mode: {mode}. Use 'chunks' or 'docs'")
         sys.exit(1)

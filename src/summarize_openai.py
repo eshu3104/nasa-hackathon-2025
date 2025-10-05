@@ -94,19 +94,12 @@ def summarize_documents_single_call(search_results: List[tuple], chunks_data: Li
     # Create single comprehensive prompt
     all_docs_text = "\n\n" + "="*80 + "\n\n".join(documents_content)
     
-    user_prompt = f"""Analyze the following research documents and provide a comprehensive summary tailored for a {mapped_role}.
+    user_prompt = f"""
+Analyze the following research documents and write a concise, readable summary in 1-2 paragraphs, synthesizing the main findings and insights from all the publications. Do not use bullet points or lists. The summary should be natural and informative, as if written by an expert for a general audience. At the end, mention the top 3 most relevant sources (with their titles) and briefly explain why they are important.
 
 DOCUMENTS TO ANALYZE:
 {all_docs_text}
-
-Please provide a structured summary that includes:
-
-1. **Key Takeaways** (5-8 main points)
-2. **Methodological Insights** (if Researcher) OR **Impact & Applications** (if Funding Manager) OR **Simple Explanations** (if Student)
-3. **Research Gaps & Next Steps** (if Researcher) OR **Funding Opportunities** (if Funding Manager) OR **Learning Points** (if Student)
-4. **Top 3 Most Relevant Sources** (with titles and why they matter)
-
-Be concise but comprehensive. Focus on the most important insights for a {mapped_role}."""
+"""
 
     messages = [
         {"role": "system", "content": system_prompt},
