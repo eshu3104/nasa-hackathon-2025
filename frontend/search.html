@@ -121,7 +121,37 @@
     .results-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
     .count{ color:var(--muted); font-size:.95rem; }
     .empty{ color:var(--muted); text-align:center; margin:18px 0 28px; }
-    footer{ margin:32px 0 8px; text-align:center; color:var(--muted); font-size:.9rem; }
+    footer{ margin:32px 0 8px; text-align:center; color:var(--muted); font-size:.9rem;     }
+
+    /* Markdown rendering styles */
+    #aiSummary h1, #aiSummary h2, #aiSummary h3 {
+      scroll-margin-top: 2rem;
+    }
+    
+    #aiSummary strong {
+      font-weight: 600;
+    }
+    
+    #aiSummary em {
+      font-style: italic;
+    }
+    
+    #aiSummary a {
+      transition: all 0.2s ease;
+    }
+    
+    #aiSummary a:hover {
+      color: var(--fg) !important;
+      border-bottom-color: var(--fg) !important;
+    }
+    
+    #aiSummary p:last-child {
+      margin-bottom: 0;
+    }
+    
+    #aiSummary div:last-child {
+      margin-bottom: 0;
+    }
   </style>
 </head>
 <body>
@@ -223,6 +253,48 @@
       return q.toLowerCase().split(/\s+/).filter(Boolean);
     }
 
+    function parseMarkdown(text) {
+      if (!text) return '';
+      
+      return text
+        // Escape HTML to prevent XSS
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        
+        // Headers (order matters - most specific first)
+        .replace(/^### (.*$)/gim, '<h3 style="margin: 1rem 0 0.5rem; color: var(--fg); font-size: 1.1rem; font-weight: 600;">$1</h3>')
+        .replace(/^## (.*$)/gim, '<h2 style="margin: 1.2rem 0 0.8rem; color: var(--fg); font-size: 1.2rem; font-weight: 600;">$1</h2>')
+        .replace(/^# (.*$)/gim, '<h1 style="margin: 1.5rem 0 1rem; color: var(--fg); font-size: 1.3rem; font-weight: 600;">$1</h1>')
+        
+        // Bold text
+        .replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--accent); font-weight: 600;">$1</strong>')
+        
+        // Italic text (but not bold)
+        .replace(/(?<!\*)\*(?!\*)([^*]+?)\*(?!\*)/g, '<em style="color: var(--muted); font-style: italic;">$1</em>')
+        
+        // Numbered lists
+        .replace(/^(\d+)\.\s+(.*$)/gim, '<div style="margin: 0.5rem 0; padding-left: 1.5rem; display: flex; align-items: flex-start;"><span style="color: var(--accent); font-weight: bold; margin-right: 0.5rem; flex-shrink: 0;">$1.</span> <span style="color: var(--muted); flex: 1;">$2</span></div>')
+        
+        // Bullet points
+        .replace(/^[-*]\s+(.*$)/gim, '<div style="margin: 0.3rem 0; padding-left: 1rem; display: flex; align-items: flex-start;"><span style="color: var(--accent); margin-right: 0.5rem; flex-shrink: 0;">•</span> <span style="color: var(--muted); flex: 1;">$1</span></div>')
+        
+        // Links
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent);" target="_blank" rel="noopener">$1</a>')
+        
+        // Line breaks and paragraphs
+        .replace(/\n\n/g, '</p><p style="margin: 0.8rem 0; color: var(--muted); line-height: 1.6;">')
+        .replace(/\n/g, '<br>')
+        
+        // Wrap remaining text in paragraphs (but not already wrapped content)
+        .replace(/^(?!<[h1-3]|<div|<p)(.*)$/gim, '<p style="margin: 0.8rem 0; color: var(--muted); line-height: 1.6;">$1</p>')
+        
+        // Clean up empty paragraphs and fix nesting
+        .replace(/<p[^>]*><\/p>/g, '')
+        .replace(/<p[^>]*>(<h[1-3][^>]*>.*<\/h[1-3]>)<\/p>/g, '$1')
+        .replace(/<p[^>]*>(<div[^>]*>.*<\/div>)<\/p>/g, '$1');
+    }
+
     async function searchAPI(query, role = 'Researcher') {
       try {
         const response = await fetch(`${API_BASE}/search`, {
@@ -312,10 +384,10 @@
         if (data.summary && data.summary !== 'Search service unavailable.') {
           const summaryDiv = document.createElement('div');
           summaryDiv.id = 'aiSummary';
-          summaryDiv.style.cssText = 'background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin: 1rem 0; box-shadow: 0 0 18px rgba(0,0,0,.45);';
+          summaryDiv.style.cssText = 'background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin: 1rem 0; box-shadow: 0 0 18px rgba(0,0,0,.45);';
           summaryDiv.innerHTML = `
-            <h3 style="margin: 0 0 0.5rem; color: var(--fg);">AI Summary</h3>
-            <p style="margin: 0; color: var(--muted); line-height: 1.5;">${data.summary}</p>
+            <h3 style="margin: 0 0 1rem; color: var(--fg); font-size: 1.2rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">🤖 AI Summary</h3>
+            <div style="color: var(--muted); line-height: 1.6;">${parseMarkdown(data.summary)}</div>
           `;
           grid.parentNode.insertBefore(summaryDiv, grid);
         }
