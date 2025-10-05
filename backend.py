@@ -66,6 +66,7 @@ def api_search():
         query = data.get('query', '').strip()
         role = data.get('role', 'Researcher')
         top_docs = data.get('top_docs', 5)
+        messages = data.get('messages', None)  # chat history
         
         if not query:
             return jsonify({'error': 'Query is required'}), 400
@@ -123,15 +124,24 @@ def api_search():
             
             results.append(result)
         
-        # Generate AI summary
+        # Generate AI summary (with chat history if provided)
         try:
             print("🤖 Generating AI summary...")
-            summary_results = summarize_documents(
-                search_results=ranked,
-                chunks_data=search_instance.chunks,
-                role=backend_role,
-                max_chunks_per_doc=3
-            )
+            if messages:
+                summary_results = summarize_documents(
+                    search_results=ranked,
+                    chunks_data=search_instance.chunks,
+                    role=backend_role,
+                    max_chunks_per_doc=3,
+                    messages=messages
+                )
+            else:
+                summary_results = summarize_documents(
+                    search_results=ranked,
+                    chunks_data=search_instance.chunks,
+                    role=backend_role,
+                    max_chunks_per_doc=3
+                )
             ai_summary = summary_results['final_summary']
         except Exception as e:
             print(f"⚠️ Summary generation failed: {e}")
