@@ -10,7 +10,7 @@ import pandas as pd
 from pathlib import Path
 from utils import load_csv
 from fetch_parse_pmc import fetch_and_cache, parse_pmc_html
-from chunking import chunk_text_by_tokens
+from chunking import chunk_section
 
 def build_chunks(csv_path="data/space_bio_608.csv", output_path="data/chunks.jsonl"):
     """Build chunks.jsonl from PMC articles."""
@@ -44,7 +44,7 @@ def build_chunks(csv_path="data/space_bio_608.csv", output_path="data/chunks.jso
             
             # Process abstract
             if parsed['abstract']:
-                abstract_chunks = chunk_text_by_tokens(parsed['abstract'])
+                abstract_chunks = chunk_section(parsed['abstract'])
                 for chunk_text in abstract_chunks:
                     chunks_data.append({
                         'chunk_id': f"chunk_{chunk_id_counter:06d}",
@@ -60,7 +60,7 @@ def build_chunks(csv_path="data/space_bio_608.csv", output_path="data/chunks.jso
             # Process sections
             for section_name, section_text in parsed['sections'].items():
                 if section_text.strip():
-                    section_chunks = chunk_text_by_tokens(section_text)
+                    section_chunks = chunk_section(section_text)
                     for chunk_text in section_chunks:
                         chunks_data.append({
                             'chunk_id': f"chunk_{chunk_id_counter:06d}",
@@ -75,7 +75,7 @@ def build_chunks(csv_path="data/space_bio_608.csv", output_path="data/chunks.jso
             
             # Process funding if available
             if parsed['funding']:
-                funding_chunks = chunk_text_by_tokens(parsed['funding'])
+                funding_chunks = chunk_section(parsed['funding'])
                 for chunk_text in funding_chunks:
                     chunks_data.append({
                         'chunk_id': f"chunk_{chunk_id_counter:06d}",
@@ -90,7 +90,7 @@ def build_chunks(csv_path="data/space_bio_608.csv", output_path="data/chunks.jso
             
             # Process acknowledgements if available
             if parsed['acknowledgements']:
-                ack_chunks = chunk_text_by_tokens(parsed['acknowledgements'])
+                ack_chunks = chunk_section(parsed['acknowledgements'])
                 for chunk_text in ack_chunks:
                     chunks_data.append({
                         'chunk_id': f"chunk_{chunk_id_counter:06d}",
@@ -128,7 +128,7 @@ def build_chunks(csv_path="data/space_bio_608.csv", output_path="data/chunks.jso
         print(f"  {section}: {count} chunks")
 
 if __name__ == "__main__":
-    csv_path = sys.argv[1] if len(sys.argv) > 1 else "data/space_bio_608.csv"
+    csv_path = sys.argv[1] if len(sys.argv) > 1 else "data/SB_publication_PMC.csv"
     output_path = sys.argv[2] if len(sys.argv) > 2 else "data/chunks.jsonl"
     
     build_chunks(csv_path, output_path)

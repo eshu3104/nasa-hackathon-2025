@@ -23,14 +23,26 @@ import re
 
 def canonical_section(title):
     t = (title or "").lower()
-    if 'abstract' in t: return 'abstract'
-    if any(k in t for k in ['method','material','protocol','procedure']): return 'methods'
-    if any(k in t for k in ['result','discussion']): return 'results'
-    if any(k in t for k in ['conclusion','conclude','outcome','summary']): return 'conclusion'
-    if 'acknowledg' in t: return 'acknowledgements'
-    if any(k in t for k in ['fund', 'support', 'sponsor', 'grant']): return 'funding'
-    if any(k in t for k in ['reference','bibliography']): return 'references'
-    return 'other'
+
+    # common aliases mapped to canonical section tags
+    SEC_ALIASES = [
+        ("abstract", ["abstract", "summary"]),
+        ("introduction", ["introduction", "background"]),
+        ("methods", ["methods", "materials", "materials and methods", "methodology", "protocol", "procedures"]),
+        ("results", ["results", "findings"]),
+        ("discussion", ["discussion"]),
+        ("results", ["results and discussion", "findings and discussion"]),  # normalize R&D to 'results'
+        ("conclusion", ["conclusion", "conclusions", "general outcomes", "outcomes"]),
+        ("acknowledgements", ["acknowledgements", "acknowledgments"]),
+        ("funding", ["funding statement", "funding", "financial support", "funding sources", "grants", "sponsor"]),
+        ("references", ["references", "bibliography", "reference list"]),
+    ]
+    for canon, keys in SEC_ALIASES:
+        if any(k in t for k in keys):
+            return canon
+
+    # last resort
+    return "other"
 
 def parse_pmc_html(html):
     soup = BeautifulSoup(html, "lxml")
@@ -54,6 +66,11 @@ def parse_pmc_html(html):
             cname = canonical_section(title)
             parsed['sections'].setdefault(cname, "")
             parsed['sections'][cname] += " " + text
+    # Fallback: if parser found no sections and no abstract, treat whole text as 'other'
+    if not parsed['abstract'] and not parsed['sections']:
+        full_text = soup.get_text(" ", strip=True)
+        if full_text:
+            parsed['sections']['other'] = full_text
     # heuristics for funding & acknowledgements from whole text
     full_text = soup.get_text(" ", strip=True)
     if not parsed['funding']:
@@ -69,3 +86,10 @@ def parse_pmc_html(html):
             txt = li.get_text(" ", strip=True)
             if txt: parsed['references'].append(txt)
     return parsed
+
+
+def parse_sections(html):
+    """Backward-compatible wrapper expected by other modules.
+    Returns the same structure as parse_pmc_html.
+    """
+    return parse_pmc_html(html)

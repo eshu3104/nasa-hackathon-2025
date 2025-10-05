@@ -18,7 +18,8 @@ def gpt4o_mini_chat(messages: List[Dict[str, str]], max_tokens: int = 400, tempe
     if not openai.api_key:
         raise ValueError("OPENAI_API_KEY environment variable not set. Make sure it's in your .env file")
     
-    resp = openai.ChatCompletion.create(
+    client = openai.OpenAI()
+    resp = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=messages,
         temperature=temperature,

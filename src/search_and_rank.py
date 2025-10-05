@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import re
 
 # Load environment variables from .env file
 load_dotenv()
@@ -31,6 +32,27 @@ ROLE_WEIGHTS = {
         'results': 0.15
     }
 }
+
+# light keyword features (fast & free)
+RE_NUM = re.compile(r"\b\d+(?:\.\d+)?\b")
+RE_FUND = re.compile(r"\b(funding|grant|supported by|award|sponsor|financial support)\b", re.I)
+RE_METHOD = re.compile(r"\b(protocol|assay|sample|control|replicate|reagent|microscopy|RNA|PCR|sequenc|statistical|p-value)\b", re.I)
+RE_EDU = re.compile(r"\b(in simple terms|we explain|overview|key takeaway)\b", re.I)
+
+
+def role_feature_boost(text, role):
+    b = 0.0
+    if role == "Funding Manager":
+        if RE_FUND.search(text): b += 0.25
+        if "impact" in text.lower() or "application" in text.lower(): b += 0.05
+    elif role == "Researcher":
+        if RE_METHOD.search(text): b += 0.15
+        # numbers often indicate results
+        if len(RE_NUM.findall(text)) >= 3: b += 0.10
+    elif role == "Student":
+        # gentle boost for educational phrasing
+        if RE_EDU.search(text) or "in summary" in text.lower(): b += 0.05
+    return b
 
 class SemanticSearch:
     def __init__(self, embeddings_path="models/embeddings.npy"):
@@ -60,7 +82,8 @@ class SemanticSearch:
     
     def embed_query_openai(self, query, model="text-embedding-3-small"):
         """Embed a query using OpenAI API."""
-        resp = openai.Embedding.create(model=model, input=[query])
+        client = openai.OpenAI()
+        resp = client.embeddings.create(model=model, input=[query])
         return np.array(resp["data"][0]["embedding"], dtype="float32")
     
     def semantic_search(self, query, top_k=10):
@@ -129,8 +152,15 @@ class SemanticSearch:
                     'url': meta['url']
                 }
             
-            # Add weighted score
-            doc_scores[doc_id]['score'] += w * score
+            # Section weight (soft)
+            sec_weighted = (1.0 + w) * score
+
+            # Content-based feature boost (independent of section)
+            feat_boost = role_feature_boost(meta.get('chunk_text',''), role)
+            final_score = sec_weighted * (1.0 + feat_boost)
+
+            # Add to document score
+            doc_scores[doc_id]['score'] += final_score
             doc_scores[doc_id]['chunks'].append((idx, score, section))
         
         # Sort by weighted score

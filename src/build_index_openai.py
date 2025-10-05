@@ -12,19 +12,22 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 def embed_batch(texts, model="text-embedding-3-small", batch_size=32):
     """Embed a batch of texts using OpenAI API with rate limiting."""
     embs = []
+    client = openai.OpenAI()
     for i in range(0, len(texts), batch_size):
         batch = texts[i:i+batch_size]
         print(f"Embedding batch {i//batch_size + 1}/{(len(texts)-1)//batch_size + 1} ({len(batch)} texts)")
-        
-        resp = openai.Embedding.create(model=model, input=batch)
-        embs += [d["embedding"] for d in resp["data"]]
+
+        resp = client.embeddings.create(model=model, input=batch)
+        # resp is a CreateEmbeddingResponse object; use attribute access
+        embs += [d.embedding for d in resp.data]
         time.sleep(0.1)  # avoid bursts
     return np.array(embs, dtype="float32")
 
 def build_embeddings_index(chunks_path="data/chunks.jsonl", 
                           embeddings_path="models/embeddings.npy",
                           model="text-embedding-3-small",
-                          batch_size=32):
+                          batch_size=32,
+                          max_chunks=None):
     """Build embeddings index from chunks.jsonl file."""
     
     # Check if embeddings already exist
@@ -44,6 +47,8 @@ def build_embeddings_index(chunks_path="data/chunks.jsonl",
     
     with open(chunks_path, 'r', encoding='utf-8') as f:
         for line in f:
+            if max_chunks is not None and len(chunks) >= int(max_chunks):
+                break
             chunk = json.loads(line.strip())
             chunks.append(chunk)
             texts.append(chunk['chunk_text'])
@@ -119,8 +124,10 @@ def example_usage():
 if __name__ == "__main__":
     import sys
     
+    # CLI: [chunks_path] [embeddings_path] [model] [max_chunks]
     chunks_path = sys.argv[1] if len(sys.argv) > 1 else "data/chunks.jsonl"
     embeddings_path = sys.argv[2] if len(sys.argv) > 2 else "models/embeddings.npy"
     model = sys.argv[3] if len(sys.argv) > 3 else "text-embedding-3-small"
-    
-    build_embeddings_index(chunks_path, embeddings_path, model)
+    max_chunks = int(sys.argv[4]) if len(sys.argv) > 4 else None
+
+    build_embeddings_index(chunks_path, embeddings_path, model, batch_size=32, max_chunks=max_chunks)
