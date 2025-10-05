@@ -29,7 +29,16 @@ def gpt4o_mini_chat(messages: List[Dict[str, str]], max_tokens: int = 400, tempe
 
 def per_doc_summary(doc_meta: Dict[str, Any], top_chunk_texts: str, role: str = "Researcher") -> str:
     """Generate a summary for a single document based on its top chunks."""
-    system = ROLE_SYSTEM_PROMPTS[role]
+    # Map role to available system prompts
+    role_mapping = {
+        "Researcher/Scientist": "Researcher",
+        "Manager/Investor": "Funding Manager",
+        "Researcher": "Researcher",
+        "Funding Manager": "Funding Manager",
+        "Student": "Student"
+    }
+    mapped_role = role_mapping.get(role, "Researcher")
+    system = ROLE_SYSTEM_PROMPTS[mapped_role]
     prompt = f"{system}\n\nSummarize the following extracted text from a single paper into 3–6 concise bullet points. Keep it factual, include any explicit funding/grant strings if present.\n\nTEXT:\n{top_chunk_texts}"
     messages = [
         {"role": "system", "content": system}, 
@@ -39,7 +48,16 @@ def per_doc_summary(doc_meta: Dict[str, Any], top_chunk_texts: str, role: str = 
 
 def final_consolidation(per_doc_summaries: List[str], role: str = "Researcher") -> str:
     """Generate a final consolidated summary from multiple document summaries."""
-    system = ROLE_SYSTEM_PROMPTS[role]
+    # Map role to available system prompts
+    role_mapping = {
+        "Researcher/Scientist": "Researcher",
+        "Manager/Investor": "Funding Manager",
+        "Researcher": "Researcher",
+        "Funding Manager": "Funding Manager",
+        "Student": "Student"
+    }
+    mapped_role = role_mapping.get(role, "Researcher")
+    system = ROLE_SYSTEM_PROMPTS[mapped_role]
     concat = "\n\n".join(per_doc_summaries)
     prompt = f"{system}\n\nThe following are short summaries from relevant papers. Produce a single, structured summary tailored to the role (Researcher/Funding Manager/Student). Include: 1) 5–8 key takeaways, 2) suggested next research steps or funding recommendations (if Funding Manager), and 3) top source titles and links (2–3). Be concise."
     messages = [

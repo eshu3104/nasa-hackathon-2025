@@ -192,73 +192,30 @@
     <footer>&copy; 2025 Skynet &amp; Services — All Rights Reserved.</footer>
   </div>
 
-  <script>
-    /** ---------- Demo dataset (expand/replace later) ---------- */
-    const PUBLICATIONS = [
-      { id: 1,
-        title: "Microgravity-Induced Gene Expression Changes in Mammalian Cells",
-        authors: "J. Smith, L. Chen", year: 2023, venue: "NASA J. Biosciences",
-        tags: ["omics","microgravity","cell biology"],
-        url: "#"
-      },
-      { id: 2,
-        title: "Radiation Effects on Plant Development in Low Earth Orbit",
-        authors: "A. Patel", year: 2022, venue: "Space Botany Letters",
-        tags: ["radiation","plants"],
-        url: "#"
-      },
-      { id: 3,
-        title: "Automated Phenotyping Pipelines for Spaceflight Experiments",
-        authors: "K. Nguyen, R. Diaz", year: 2024, venue: "Systems Bio Eng.",
-        tags: ["automation","pipelines","data"],
-        url: "#"
-      },
-      { id: 4,
-        title: "Omics Profiling of Spaceflight Mice: Multi-Organ Analysis",
-        authors: "H. Wu et al.", year: 2021, venue: "Frontiers in Space Biology",
-        tags: ["omics","mouse","multi-omics"],
-        url: "#"
-      },
-      { id: 5,
-        title: "Radiation Shielding Strategies for Biological Specimens",
-        authors: "T. Alvarez", year: 2020, venue: "Aerospace Biology",
-        tags: ["radiation","shielding","hardware"],
-        url: "#"
-      },
-      { id: 6,
-        title: "Plant Root Morphogenesis Under Simulated Microgravity",
-        authors: "S. Ito", year: 2023, venue: "Space Botany Letters",
-        tags: ["plants","microgravity","development"],
-        url: "#"
-      },
-      { id: 7,
-        title: "In-Flight Automation for Sample Processing on the ISS",
-        authors: "R. Kim", year: 2024, venue: "Systems Ops",
-        tags: ["automation","ISS","protocols"],
-        url: "#"
-      },
-      { id: 8,
-        title: "Radiation-Induced DNA Damage Repair Pathways in Space",
-        authors: "E. Gomez", year: 2022, venue: "Genomics in Space",
-        tags: ["radiation","DNA repair","omics"],
-        url: "#"
-      }
-    ];
+    <script>
+    /** ---------- API Configuration ---------- */
+    const API_BASE = 'http://localhost:5000/api';
+    let PUBLICATIONS = []; // Will be loaded from trending endpoint
 
     /** ---------- Helpers ---------- */
     const qs = (sel, el=document) => el.querySelector(sel);
 
     function renderCard(p) {
-      const tags = p.tags.map(t => `<span class="tag">${t}</span>`).join("");
+      // Handle both demo data format and API response format
+      const title = p.title || 'Untitled';
+      const meta = p.authors ? `${p.authors} — ${p.year} • ${p.venue}` : `PMC ID: ${p.pmcid}`;
+      const tags = p.tags ? p.tags.map(t => `<span class="tag">${t}</span>`).join("") : 
+                   (p.section ? `<span class="tag">${p.section}</span>` : '');
+      
       return `
         <article class="card">
-          <div class="title">${p.title}</div>
-          <div class="meta">${p.authors} — ${p.year} • ${p.venue}</div>
+          <div class="title">${title}</div>
+          <div class="meta">${meta}</div>
           <div class="tags">${tags}</div>
           <div class="actions">
-            <a class="link" href="${p.url}">Open</a>
-            <a class="link" href="#">Save</a>
+            <a class="link" href="${p.url}" target="_blank">Open Paper</a>
           </div>
+          ${p.preview ? `<div style="margin-top: 8px; font-size: 0.9rem; color: #b3b3b3;">${p.preview}</div>` : ''}
         </article>`;
     }
 
@@ -266,13 +223,30 @@
       return q.toLowerCase().split(/\s+/).filter(Boolean);
     }
 
-    function search(publications, query) {
-      const terms = tokenize(query);
-      if (!terms.length) return [];
-      return publications.filter(p => {
-        const hay = (p.title + " " + p.authors + " " + p.venue + " " + p.tags.join(" ")).toLowerCase();
-        return terms.every(t => hay.includes(t));
-      });
+    async function searchAPI(query, role = 'Researcher') {
+      try {
+        const response = await fetch(`${API_BASE}/search`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            query: query,
+            role: role,
+            top_docs: 10
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Search API error:', error);
+        return { results: [], summary: 'Search service unavailable.', count: 0 };
+      }
     }
 
     function setURLQuery(q) {
@@ -301,26 +275,77 @@
       btns.innerHTML = list.map(q => `<button type="button">${q}</button>`).join("");
     }
 
-    function runSearch(q) {
-      const results = search(PUBLICATIONS, q);
-      // toggle sections
-      qs("#trendingSection").style.display = results.length ? "none" : "";
+    async function runSearch(q) {
+      // Get current role
+      let currentRole = 'Researcher';
+      try {
+        const roleData = JSON.parse(sessionStorage.getItem("nassRole"));
+        if (roleData && roleData.role) {
+          currentRole = roleData.role;
+        }
+      } catch (e) {}
+      
+      // Show loading state
+      qs("#trendingSection").style.display = "none";
       qs("#resultsSection").style.display = "block";
+      qs("#resultsTitle").textContent = `Searching for: "${q}"...`;
+      qs("#resultsCount").textContent = "Loading...";
+      qs("#resultsGrid").innerHTML = '<div style="text-align: center; color: #b3b3b3;">Searching...</div>';
+      qs("#emptyMsg").style.display = "none";
+
+      // Call API
+      const data = await searchAPI(q, currentRole);
+      
+      // Update UI with results
       qs("#resultsTitle").textContent = `Results for: "${q}"`;
-      qs("#resultsCount").textContent = `${results.length} ${results.length === 1 ? "match" : "matches"}`;
+      qs("#resultsCount").textContent = `${data.count} ${data.count === 1 ? "match" : "matches"}`;
+
+      // Clear any existing summary
+      const existingSummary = qs("#aiSummary");
+      if (existingSummary) {
+        existingSummary.remove();
+      }
 
       const grid = qs("#resultsGrid");
-      grid.innerHTML = results.map(renderCard).join("");
-      qs("#emptyMsg").style.display = results.length ? "none" : "block";
+      if (data.results && data.results.length > 0) {
+        // Show AI summary if available (before results)
+        if (data.summary && data.summary !== 'Search service unavailable.') {
+          const summaryDiv = document.createElement('div');
+          summaryDiv.id = 'aiSummary';
+          summaryDiv.style.cssText = 'background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin: 1rem 0; box-shadow: 0 0 18px rgba(0,0,0,.45);';
+          summaryDiv.innerHTML = `
+            <h3 style="margin: 0 0 0.5rem; color: var(--fg);">AI Summary</h3>
+            <p style="margin: 0; color: var(--muted); line-height: 1.5;">${data.summary}</p>
+          `;
+          grid.parentNode.insertBefore(summaryDiv, grid);
+        }
+        
+        grid.innerHTML = data.results.map(renderCard).join("");
+        qs("#emptyMsg").style.display = "none";
+      } else {
+        grid.innerHTML = '';
+        qs("#emptyMsg").style.display = "block";
+      }
 
       setURLQuery(q);
       addRecent(q);
     }
 
-    function renderTrending() {
-      qs("#trendGrid").innerHTML = [1,2,3]
-        .map(i => renderCard(PUBLICATIONS[i-1])) // first three items
-        .join("");
+    async function renderTrending() {
+      try {
+        const response = await fetch(`${API_BASE}/trending`);
+        if (response.ok) {
+          const data = await response.json();
+          PUBLICATIONS = data.trending || [];
+          qs("#trendGrid").innerHTML = PUBLICATIONS.slice(0, 8).map(renderCard).join("");
+        } else {
+          // Fallback to demo data if API fails
+          qs("#trendGrid").innerHTML = '<div style="text-align: center; color: #b3b3b3;">Loading trending publications...</div>';
+        }
+      } catch (error) {
+        console.error('Trending API error:', error);
+        qs("#trendGrid").innerHTML = '<div style="text-align: center; color: #b3b3b3;">Unable to load trending publications.</div>';
+      }
     }
 
     /** ---------- Init ---------- */
