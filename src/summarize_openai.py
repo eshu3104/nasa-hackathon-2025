@@ -25,7 +25,7 @@ def gpt4o_mini_chat(messages: List[Dict[str, str]], max_tokens: int = 400, tempe
         temperature=temperature,
         max_tokens=max_tokens
     )
-    return resp['choices'][0]['message']['content'].strip()
+    return resp.choices[0].message.content.strip()
 
 def per_doc_summary(doc_meta: Dict[str, Any], top_chunk_texts: str, role: str = "Researcher") -> str:
     """Generate a summary for a single document based on its top chunks."""

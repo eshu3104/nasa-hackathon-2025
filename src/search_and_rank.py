@@ -55,7 +55,7 @@ def role_feature_boost(text, role):
     return b
 
 class SemanticSearch:
-    def __init__(self, embeddings_path="models/embeddings.npy"):
+    def __init__(self, embeddings_path="models/emb_full.npy"):
         """Initialize semantic search with embeddings and chunks."""
         self.embeddings_path = embeddings_path
         self.chunks_metadata_path = embeddings_path.replace('.npy', '_chunks.jsonl')
@@ -84,7 +84,7 @@ class SemanticSearch:
         """Embed a query using OpenAI API."""
         client = openai.OpenAI()
         resp = client.embeddings.create(model=model, input=[query])
-        return np.array(resp["data"][0]["embedding"], dtype="float32")
+        return np.array(resp.data[0].embedding, dtype="float32")
     
     def semantic_search(self, query, top_k=10):
         """In-memory cosine similarity search."""
@@ -193,14 +193,11 @@ class SemanticSearch:
 # Convenience functions for simple usage
 def embed_query_openai(query, model="text-embedding-3-small"):
     """Standalone function to embed a query."""
-    openai.api_key = os.getenv("OPENAI_API_KEY")
-    if not openai.api_key:
-        raise ValueError("OPENAI_API_KEY environment variable not set. Make sure it's in your .env file")
-    
-    resp = openai.Embedding.create(model=model, input=[query])
-    return np.array(resp["data"][0]["embedding"], dtype="float32")
+    client = openai.OpenAI()
+    resp = client.embeddings.create(model=model, input=[query])
+    return np.array(resp.data[0].embedding, dtype="float32")
 
-def semantic_search_simple(query, embeddings_path="models/embeddings.npy", top_k=10):
+def semantic_search_simple(query, embeddings_path="models/emb_full.npy", top_k=10):
     """Simple semantic search function."""
     embeddings = np.load(embeddings_path)
     chunks_metadata_path = embeddings_path.replace('.npy', '_chunks.jsonl')
