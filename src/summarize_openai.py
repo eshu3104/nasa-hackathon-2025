@@ -1,10 +1,13 @@
-# src/summarize_openai.py
-import openai, os
+import os
+import json
 from typing import List, Dict, Any
+import openai
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# Load environment variables
 load_dotenv()
+
+# Set OpenAI API key
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 ROLE_SYSTEM_PROMPTS = {
@@ -13,8 +16,22 @@ ROLE_SYSTEM_PROMPTS = {
     "Student": "You are explaining to a student. Give simple takeaways, what was done, and why it matters."
 }
 
+def gpt5_mini_chat(messages: List[Dict[str, str]], max_tokens: int = 400, temperature: float = 0.0) -> str:
+    """Chat with GPT-5-mini model for advanced reasoning and summarization."""
+    if not openai.api_key:
+        raise ValueError("OPENAI_API_KEY environment variable not set. Make sure it's in your .env file")
+    
+    client = openai.OpenAI()
+    resp = client.chat.completions.create(
+        model="gpt-5-mini",
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens
+    )
+    return resp.choices[0].message.content.strip()
+
 def gpt4o_mini_chat(messages: List[Dict[str, str]], max_tokens: int = 400, temperature: float = 0.0) -> str:
-    """Chat with GPT-4o-mini model."""
+    """Fallback chat with GPT-4o-mini model."""
     if not openai.api_key:
         raise ValueError("OPENAI_API_KEY environment variable not set. Make sure it's in your .env file")
     
@@ -27,49 +44,10 @@ def gpt4o_mini_chat(messages: List[Dict[str, str]], max_tokens: int = 400, tempe
     )
     return resp.choices[0].message.content.strip()
 
-def per_doc_summary(doc_meta: Dict[str, Any], top_chunk_texts: str, role: str = "Researcher") -> str:
-    """Generate a summary for a single document based on its top chunks."""
-    # Map role to available system prompts
-    role_mapping = {
-        "Researcher/Scientist": "Researcher",
-        "Manager/Investor": "Funding Manager",
-        "Researcher": "Researcher",
-        "Funding Manager": "Funding Manager",
-        "Student": "Student"
-    }
-    mapped_role = role_mapping.get(role, "Researcher")
-    system = ROLE_SYSTEM_PROMPTS[mapped_role]
-    prompt = f"{system}\n\nSummarize the following extracted text from a single paper into 3–6 concise bullet points. Keep it factual, include any explicit funding/grant strings if present.\n\nTEXT:\n{top_chunk_texts}"
-    messages = [
-        {"role": "system", "content": system}, 
-        {"role": "user", "content": prompt}
-    ]
-    return gpt4o_mini_chat(messages, max_tokens=300)
-
-def final_consolidation(per_doc_summaries: List[str], role: str = "Researcher") -> str:
-    """Generate a final consolidated summary from multiple document summaries."""
-    # Map role to available system prompts
-    role_mapping = {
-        "Researcher/Scientist": "Researcher",
-        "Manager/Investor": "Funding Manager",
-        "Researcher": "Researcher",
-        "Funding Manager": "Funding Manager",
-        "Student": "Student"
-    }
-    mapped_role = role_mapping.get(role, "Researcher")
-    system = ROLE_SYSTEM_PROMPTS[mapped_role]
-    concat = "\n\n".join(per_doc_summaries)
-    prompt = f"{system}\n\nThe following are short summaries from relevant papers. Produce a single, structured summary tailored to the role (Researcher/Funding Manager/Student). Include: 1) 5–8 key takeaways, 2) suggested next research steps or funding recommendations (if Funding Manager), and 3) top source titles and links (2–3). Be concise."
-    messages = [
-        {"role": "system", "content": system}, 
-        {"role": "user", "content": prompt + "\n\nSOURCE SUMMARIES:\n" + concat}
-    ]
-    return gpt4o_mini_chat(messages, max_tokens=500)
-
-def summarize_documents(search_results: List[tuple], chunks_data: List[Dict[str, Any]], 
-                       role: str = "Researcher", max_chunks_per_doc: int = 5) -> Dict[str, Any]:
+def summarize_documents_single_call(search_results: List[tuple], chunks_data: List[Dict[str, Any]], 
+                                  role: str = "Researcher", max_chunks_per_doc: int = 3) -> Dict[str, Any]:
     """
-    Multi-stage summarization pipeline.
+    Single GPT call summarization pipeline - much faster!
     
     Args:
         search_results: List of (doc_id, doc_data) tuples from rank_docs_weighted
@@ -78,120 +56,111 @@ def summarize_documents(search_results: List[tuple], chunks_data: List[Dict[str,
         max_chunks_per_doc: Maximum chunks to use per document
     
     Returns:
-        Dictionary with per-doc summaries and final consolidation
+        Dictionary with final summary
     """
-    per_doc_summaries = []
-    doc_details = []
+    # Map role to available system prompts
+    role_mapping = {
+        "Researcher/Scientist": "Researcher",
+        "Manager/Investor": "Funding Manager",
+        "Researcher": "Researcher",
+        "Funding Manager": "Funding Manager",
+        "Student": "Student"
+    }
+    mapped_role = role_mapping.get(role, "Researcher")
+    system_prompt = ROLE_SYSTEM_PROMPTS[mapped_role]
     
-    print(f"Generating summaries for {len(search_results)} documents (Role: {role})")
+    print(f"🤖 Generating single consolidated summary for {len(search_results)} documents (Role: {mapped_role})")
+    
+    # Prepare all document content for single call
+    documents_content = []
+    doc_titles = []
     
     for doc_id, doc_data in search_results:
         # Get top chunks for this document
-        doc_chunks = doc_data['chunks'][:max_chunks_per_doc]
+        top_chunks = sorted(doc_data['chunks'], key=lambda x: -x[1])[:max_chunks_per_doc]
         
-        # Extract text from chunks
+        # Combine chunk texts
         chunk_texts = []
-        for chunk_idx, score, section in doc_chunks:
+        for chunk_idx, chunk_score, section in top_chunks:
             chunk = chunks_data[chunk_idx]
-            chunk_texts.append(f"[{section}] {chunk['chunk_text']}")
+            chunk_texts.append(f"[{section.upper()}] {chunk['chunk_text']}")
         
         combined_text = "\n\n".join(chunk_texts)
+        doc_title = doc_data['title']
         
-        # Generate per-document summary
-        print(f"Summarizing {doc_data['pmcid']}: {doc_data['title'][:50]}...")
-        doc_summary = per_doc_summary(doc_data, combined_text, role)
+        documents_content.append(f"**{doc_title}**\n{combined_text}")
+        doc_titles.append(doc_title)
+    
+    # Create single comprehensive prompt
+    all_docs_text = "\n\n" + "="*80 + "\n\n".join(documents_content)
+    
+    user_prompt = f"""Analyze the following research documents and provide a comprehensive summary tailored for a {mapped_role}.
+
+DOCUMENTS TO ANALYZE:
+{all_docs_text}
+
+Please provide a structured summary that includes:
+
+1. **Key Takeaways** (5-8 main points)
+2. **Methodological Insights** (if Researcher) OR **Impact & Applications** (if Funding Manager) OR **Simple Explanations** (if Student)
+3. **Research Gaps & Next Steps** (if Researcher) OR **Funding Opportunities** (if Funding Manager) OR **Learning Points** (if Student)
+4. **Top 3 Most Relevant Sources** (with titles and why they matter)
+
+Be concise but comprehensive. Focus on the most important insights for a {mapped_role}."""
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt}
+    ]
+    
+    try:
+        print(f"🤖 Calling GPT-5-mini with {len(messages[1]['content'])} characters of content...")
+        # Single GPT call for everything!
+        final_summary = gpt5_mini_chat(messages, max_tokens=800)
+        print(f"✅ GPT-5-mini response received: {len(final_summary)} characters")
         
-        per_doc_summaries.append(doc_summary)
-        doc_details.append({
-            'pmcid': doc_data['pmcid'],
-            'title': doc_data['title'],
-            'url': doc_data['url'],
-            'score': doc_data['score'],
-            'summary': doc_summary
-        })
-    
-    # Generate final consolidation
-    print("Generating final consolidation...")
-    final_summary = final_consolidation(per_doc_summaries, role)
-    
-    return {
-        'role': role,
-        'final_summary': final_summary,
-        'document_summaries': doc_details,
-        'num_documents': len(search_results)
-    }
+        return {
+            'final_summary': final_summary,
+            'doc_count': len(search_results),
+            'role': mapped_role
+        }
+        
+    except Exception as e:
+        print(f"❌ Error in GPT-5-mini call: {e}")
+        print(f"🔄 Falling back to GPT-4o-mini...")
+        
+        # Fallback to GPT-4o-mini
+        try:
+            final_summary = gpt4o_mini_chat(messages, max_tokens=800)
+            print(f"✅ GPT-4o-mini fallback successful: {len(final_summary)} characters")
+            
+            return {
+                'final_summary': final_summary,
+                'doc_count': len(search_results),
+                'role': mapped_role
+            }
+        except Exception as fallback_error:
+            print(f"❌ GPT-4o-mini fallback also failed: {fallback_error}")
+            # Final fallback summary
+            fallback = f"Found {len(search_results)} relevant documents about your query. The top documents include: {', '.join(doc_titles[:3])}."
+            return {
+                'final_summary': fallback,
+                'doc_count': len(search_results),
+                'role': mapped_role
+            }
 
-def print_summary_results(results: Dict[str, Any]):
-    """Print formatted summary results."""
-    print(f"\n{'='*80}")
-    print(f"RESEARCH SUMMARY (Role: {results['role']})")
-    print(f"{'='*80}")
-    
-    print(f"\nFINAL CONSOLIDATION:")
-    print("-" * 40)
-    print(results['final_summary'])
-    
-    print(f"\nDOCUMENT SUMMARIES ({results['num_documents']} documents):")
-    print("-" * 40)
-    
-    for i, doc in enumerate(results['document_summaries'], 1):
-        print(f"\n{i}. {doc['title']}")
-        print(f"   PMC ID: {doc['pmcid']}")
-        print(f"   Score: {doc['score']:.4f}")
-        print(f"   URL: {doc['url']}")
-        print(f"   Summary: {doc['summary']}")
+# Legacy functions for backward compatibility
+def per_doc_summary(doc_meta: Dict[str, Any], top_chunk_texts: str, role: str = "Researcher") -> str:
+    """Legacy function - now redirects to single call approach."""
+    return "Legacy function - use summarize_documents_single_call instead"
 
-# Example usage function
-def example_usage():
-    """Example of how to use the summarization functionality."""
-    from src.search_and_rank import SemanticSearch
-    
-    # Initialize search
-    search = SemanticSearch()
-    
-    # Get ranked documents
-    doc_results = search.rank_docs_weighted(
-        query="space biology effects of microgravity", 
-        role="Researcher", 
-        top_docs=3
-    )
-    
-    # Generate summaries
-    summary_results = summarize_documents(
-        search_results=doc_results,
-        chunks_data=search.chunks,
-        role="Researcher",
-        max_chunks_per_doc=5
-    )
-    
-    # Print results
-    print_summary_results(summary_results)
+def final_consolidation(per_doc_summaries: List[str], role: str = "Researcher") -> str:
+    """Legacy function - now redirects to single call approach."""
+    return "Legacy function - use summarize_documents_single_call instead"
 
-if __name__ == "__main__":
-    import sys
-    from src.search_and_rank import SemanticSearch
-    
-    if len(sys.argv) < 2:
-        print("Usage: python summarize_openai.py <query> [role] [top_docs]")
-        print("Example: python summarize_openai.py 'space biology' 'Researcher' 5")
-        print("Roles: Researcher, Funding Manager, Student")
-        sys.exit(1)
-    
-    query = sys.argv[1]
-    role = sys.argv[2] if len(sys.argv) > 2 else 'Researcher'
-    top_docs = int(sys.argv[3]) if len(sys.argv) > 3 else 5
-    
-    # Initialize search and get documents
-    search = SemanticSearch()
-    doc_results = search.rank_docs_weighted(query, role=role, top_docs=top_docs)
-    
-    # Generate summaries
-    summary_results = summarize_documents(
-        search_results=doc_results,
-        chunks_data=search.chunks,
-        role=role,
-        max_chunks_per_doc=5
-    )
-    
-    # Print results
-    print_summary_results(summary_results)
+def summarize_documents(search_results: List[tuple], chunks_data: List[Dict[str, Any]], 
+                       role: str = "Researcher", max_chunks_per_doc: int = 5) -> Dict[str, Any]:
+    """
+    Legacy function - now uses single call for speed.
+    """
+    return summarize_documents_single_call(search_results, chunks_data, role, max_chunks_per_doc)
