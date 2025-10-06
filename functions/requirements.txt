@@ -1,0 +1,8 @@
+functions-framework==3.*
+Flask==2.3.*
+Flask-Cors==4.*
+python-dotenv==1.*
+openai==1.*
+numpy==1.*
+scikit-learn==1.*
+pandas==2.*
