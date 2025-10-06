@@ -32,9 +32,9 @@ def get_search():
     if search is None:
         try:
             search = SemanticSearch()
-            print(f"✅ Search initialized with {len(search.chunks)} chunks")
+            print(f"Search initialized with {len(search.chunks)} chunks")
         except Exception as e:
-            print(f"❌ Error initializing search: {e}")
+            print(f"Error initializing search: {e}")
             search = None
     return search
 
@@ -52,6 +52,7 @@ def serve_search():
 def serve_track():
     """Serve role tracking page"""
     return send_from_directory('frontendwebsetup', 'track.html')
+
 
 @app.route('/<path:filename>')
 def serve_static(filename):
@@ -82,7 +83,7 @@ def api_search():
         }
         backend_role = role_mapping.get(role, "Researcher")
         
-        print(f"🔍 Searching for: '{query}' (Frontend Role: {role}, Backend Role: {backend_role})")
+        print(f"Searching for: '{query}' (Frontend Role: {role}, Backend Role: {backend_role})")
         
         # Get ranked documents
         ranked = search_instance.rank_docs_weighted(
@@ -126,7 +127,7 @@ def api_search():
         
         # Generate AI summary (with chat history if provided)
         try:
-            print("🤖 Generating AI summary...")
+            print("Generating AI summary...")
             if messages:
                 summary_results = summarize_documents(
                     search_results=ranked,
@@ -146,7 +147,7 @@ def api_search():
         except Exception as e:
             import traceback
             tb = traceback.format_exc()
-            print(f"⚠️ Summary generation failed: {e}\n{tb}")
+            print(f"Summary generation failed: {e}\n{tb}")
             ai_summary = f"Found {len(results)} relevant documents for your query.<br><span style='color:#ff8080'>Summary error: {e}</span>"
         
         # Build chat history for frontend: alternate user/assistant messages
@@ -167,7 +168,7 @@ def api_search():
         })
         
     except Exception as e:
-        print(f"❌ Search error: {e}")
+        print(f"Search error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/trending', methods=['GET'])
@@ -199,8 +200,9 @@ def api_trending():
         return jsonify({'trending': trending})
         
     except Exception as e:
-        print(f"❌ Trending error: {e}")
+        print(f"Trending error: {e}")
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/health', methods=['GET'])
 def api_health():
@@ -219,12 +221,12 @@ def api_health():
         return jsonify({'status': 'unhealthy', 'reason': str(e)}), 500
 
 if __name__ == '__main__':
-    print("🚀 Starting Skynet Knowledge Engine Backend...")
+    print("Starting Skynet Knowledge Engine Backend...")
     
     # Check if we can initialize search
     search_instance = get_search()
     if not search_instance:
-        print("⚠️ Warning: Search service not available. Some endpoints may not work.")
+        print("Warning: Search service not available. Some endpoints may not work.")
     
     # Run the Flask app
     app.run(

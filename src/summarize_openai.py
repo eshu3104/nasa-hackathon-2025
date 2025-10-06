@@ -70,7 +70,7 @@ def summarize_documents_single_call(search_results: List[tuple], chunks_data: Li
     mapped_role = role_mapping.get(role, "Researcher")
     system_prompt = ROLE_SYSTEM_PROMPTS[mapped_role]
     
-    print(f"🤖 Generating single consolidated summary for {len(search_results)} documents (Role: {mapped_role})")
+    print(f"Generating single consolidated summary for {len(search_results)} documents (Role: {mapped_role})")
     
     # Prepare all document content for single call
     documents_content = []
@@ -136,10 +136,10 @@ DOCUMENTS TO ANALYZE:
     ]
     
     try:
-        print(f"🤖 Calling GPT-4o-mini with {len(messages[1]['content'])} characters of content...")
+        print(f"Calling GPT-4o-mini with {len(messages[1]['content'])} characters of content...")
         # Single GPT call for everything!
         final_summary = gpt4o_mini_chat(messages, max_tokens=800)
-        print(f"✅ GPT-4o-mini response received: {len(final_summary)} characters")
+        print(f"GPT-4o-mini response received: {len(final_summary)} characters")
         
         return {
             'final_summary': final_summary,
@@ -148,13 +148,13 @@ DOCUMENTS TO ANALYZE:
         }
         
     except Exception as e:
-        print(f"❌ Error in GPT-4o-mini call: {e}")
-        print(f"🔄 Falling back to GPT-4o-mini fallback...")
+        print(f"Error in GPT-4o-mini call: {e}")
+        print(f"Falling back to GPT-4o-mini fallback...")
         
         # Fallback to GPT-4o-mini fallback
         try:
             final_summary = gpt4o_mini_fallback(messages, max_tokens=800)
-            print(f"✅ GPT-4o-mini fallback successful: {len(final_summary)} characters")
+            print(f"GPT-4o-mini fallback successful: {len(final_summary)} characters")
             
             return {
                 'final_summary': final_summary,
@@ -162,7 +162,7 @@ DOCUMENTS TO ANALYZE:
                 'role': mapped_role
             }
         except Exception as fallback_error:
-            print(f"❌ GPT-4o-mini fallback also failed: {fallback_error}")
+            print(f"GPT-4o-mini fallback also failed: {fallback_error}")
             # Final fallback summary
             fallback = f"Found {len(search_results)} relevant documents about your query. The top documents include: {', '.join(doc_titles[:3])}."
             return {

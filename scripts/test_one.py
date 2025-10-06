@@ -82,7 +82,7 @@ def main():
         print("  Example chunk preview:")
         if texts:
             print(texts[0][:400].replace('\n',' '))
-        print("✅ Dry run complete.")
+        print("Dry run complete.")
         return
 
     print("[STEP 2] Embed chunks (OpenAI)…")
@@ -116,7 +116,7 @@ def main():
         print(f"{rank}. section={sections[i]:<15} | score={score:.4f}")
         print(f"    {preview}\n")
 
-    print("✅ Smoke test complete. You just exercised: fetch → parse → chunk → OpenAI embeddings → query → role-weighted ranking.")
+    print("Smoke test complete. You just exercised: fetch → parse → chunk → OpenAI embeddings → query → role-weighted ranking.")
 
 if __name__ == "__main__":
     main()
