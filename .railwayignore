@@ -1,0 +1,46 @@
+# Development files
+.env
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Scripts and utilities (not needed in production)
+scripts/
+test_small_embed.py
+
+# Git
+.git/
+.gitignore
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# macOS
+.DS_Store
+
+# Development data (optional - remove if needed)
+nasa_space_biology_paper_mapping.json
+
+# Logs
+*.log

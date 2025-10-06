@@ -7,6 +7,7 @@ Connects frontend to semantic search and summarization functionality
 import os
 import sys
 import json
+import logging
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -14,14 +15,35 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 # Add src directory to path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
 from search_and_rank import SemanticSearch
 from summarize_openai import summarize_documents
 
+# Initialize Flask app
 app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend
+
+# Configure CORS
+CORS(app, resources={
+    r"/api/*": {
+        "origins": os.getenv("CORS_ORIGINS", "*").split(","),
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
+
+# Production configuration
+app.config['ENV'] = os.getenv('FLASK_ENV', 'production')
+app.config['DEBUG'] = os.getenv('DEBUG', 'False').lower() == 'true'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max request size
 
 # Initialize search once
 search = None
@@ -32,9 +54,9 @@ def get_search():
     if search is None:
         try:
             search = SemanticSearch()
-            print(f"Search initialized with {len(search.chunks)} chunks")
+            logger.info(f"Search initialized with {len(search.chunks)} chunks")
         except Exception as e:
-            print(f"Error initializing search: {e}")
+            logger.error(f"Error initializing search: {e}")
             search = None
     return search
 
@@ -83,7 +105,7 @@ def api_search():
         }
         backend_role = role_mapping.get(role, "Researcher")
         
-        print(f"Searching for: '{query}' (Frontend Role: {role}, Backend Role: {backend_role})")
+        logger.info(f"Searching for: '{query}' (Frontend Role: {role}, Backend Role: {backend_role})")
         
         # Get ranked documents
         ranked = search_instance.rank_docs_weighted(
@@ -127,7 +149,7 @@ def api_search():
         
         # Generate AI summary (with chat history if provided)
         try:
-            print("Generating AI summary...")
+            logger.info("Generating AI summary...")
             if messages:
                 summary_results = summarize_documents(
                     search_results=ranked,
@@ -147,7 +169,7 @@ def api_search():
         except Exception as e:
             import traceback
             tb = traceback.format_exc()
-            print(f"Summary generation failed: {e}\n{tb}")
+            logger.error(f"Summary generation failed: {e}\n{tb}")
             ai_summary = f"Found {len(results)} relevant documents for your query.<br><span style='color:#ff8080'>Summary error: {e}</span>"
         
         # Build chat history for frontend: alternate user/assistant messages
@@ -168,7 +190,7 @@ def api_search():
         })
         
     except Exception as e:
-        print(f"Search error: {e}")
+        logger.error(f"Search error: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/trending', methods=['GET'])
@@ -200,7 +222,7 @@ def api_trending():
         return jsonify({'trending': trending})
         
     except Exception as e:
-        print(f"Trending error: {e}")
+        logger.error(f"Trending error: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 
@@ -221,17 +243,21 @@ def api_health():
         return jsonify({'status': 'unhealthy', 'reason': str(e)}), 500
 
 if __name__ == '__main__':
-    print("Starting Skynet Knowledge Engine Backend...")
+    logger.info("Starting Skynet Knowledge Engine Backend...")
     
     # Check if we can initialize search
     search_instance = get_search()
     if not search_instance:
-        print("Warning: Search service not available. Some endpoints may not work.")
+        logger.warning("Search service not available. Some endpoints may not work.")
     
-    # Run the Flask app
+    # Get port from environment or use default
+    port = int(os.getenv('PORT', 5000))
+    debug = os.getenv('DEBUG', 'False').lower() == 'true'
+    
+    # Run the Flask app (for development only - use gunicorn in production)
     app.run(
         host='0.0.0.0',
-        port=5000,
-        debug=True,
+        port=port,
+        debug=debug,
         threaded=True
     )
