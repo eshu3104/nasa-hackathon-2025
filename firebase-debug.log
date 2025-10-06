@@ -1,0 +1,21 @@
+[debug] [2025-10-06T04:20:02.550Z] ----------------------------------------------------------------------
+[debug] [2025-10-06T04:20:02.561Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\aravi\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init
+[debug] [2025-10-06T04:20:02.562Z] CLI Version:   14.18.0
+[debug] [2025-10-06T04:20:02.562Z] Platform:      win32
+[debug] [2025-10-06T04:20:02.562Z] Node Version:  v22.20.0
+[debug] [2025-10-06T04:20:02.563Z] Time:          Sun Oct 05 2025 21:20:02 GMT-0700 (Pacific Daylight Time)
+[debug] [2025-10-06T04:20:02.563Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-10-06T04:20:02.575Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-10-06T04:20:02.576Z] > authorizing via signed-in user (aravindbala2055@gmail.com)
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  C:\Users\aravi\Documents\NASA_SpaceApps_Hackathon\nasa-hackathon-2025
+
