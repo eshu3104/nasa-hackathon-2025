@@ -149,12 +149,21 @@ def api_search():
             print(f"⚠️ Summary generation failed: {e}\n{tb}")
             ai_summary = f"Found {len(results)} relevant documents for your query.<br><span style='color:#ff8080'>Summary error: {e}</span>"
         
+        # Build chat history for frontend: alternate user/assistant messages
+        history = []
+        if messages:
+            for msg in messages:
+                if msg.get('role') == 'user':
+                    history.append({'role': 'user', 'content': msg.get('content', '')})
+        history.append({'role': 'assistant', 'content': ai_summary})
+
         return jsonify({
             'results': results,
             'summary': ai_summary,
             'count': len(results),
             'query': query,
-            'role': role
+            'role': role,
+            'history': history
         })
         
     except Exception as e:

@@ -1,0 +1,13 @@
+# Minimal dependencies required to run the Flask web app and indexing/search utilities.
+# Notes:
+# - faiss-cpu is optional on Windows via pip; the marker will skip installation on Windows.
+#   If you are on Windows and need FAISS, use conda: `conda install -c conda-forge faiss-cpu`.
+
+Flask
+Flask-Cors
+python-dotenv
+openai
+numpy
+scikit-learn
+pandas
+faiss-cpu; platform_system!="Windows"
