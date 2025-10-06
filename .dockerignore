@@ -1,0 +1,55 @@
+# Git and version control
+.git
+.gitignore
+.github
+
+# Environment files
+.env
+.env.local
+.env.example
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Documentation
+README.md
+*.md
+docs/
+
+# Test files
+test_*.py
+*_test.py
+tests/
+
+# Render deployment files (not needed in container)
+RENDER-DEPLOYMENT.md
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Node modules (if any)
+node_modules/
+npm-debug.log
+
+# Temporary files
+tmp/
+temp/
