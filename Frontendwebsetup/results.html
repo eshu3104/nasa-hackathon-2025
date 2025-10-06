@@ -9,6 +9,9 @@
       --fg:#f2f2f2; --muted:#b3b3b3;
       --card:#141414; --radius:14px; --border:#2a2a2a;
       --accent:#ffffff;
+      --accent-rgb: 255, 255, 255; /* RGB values for rgba() */
+      --accent-light:#f0f0f0;     /* lighter accent for gradients */
+      --bg-secondary:#1a1a1a;     /* secondary background */
       --focus:#EFF9F0;
     }
     body{
@@ -244,6 +247,67 @@
     let lastSummary = '';
     let isResultsMode = false;
 
+    // Markdown parsing function
+    function parseMarkdown(text) {
+      if (!text) return '';
+      
+      console.log('🎯 PARSING MARKDOWN:', text.substring(0, 100) + '...');
+      
+      // Simple, robust approach
+      let result = text;
+      
+      // 1. Headers
+      result = result.replace(/^### (.*$)/gm, '<h3 style="margin: 1.2rem 0 0.6rem; color: var(--fg); font-size: 1.1rem; font-weight: 600; border-left: 3px solid var(--accent); padding-left: 0.8rem;">$1</h3>');
+      result = result.replace(/^## (.*$)/gm, '<h2 style="margin: 1.5rem 0 1rem; color: var(--fg); font-size: 1.3rem; font-weight: 700; border-bottom: 2px solid var(--accent); padding-bottom: 0.5rem;">$1</h2>');
+      result = result.replace(/^# (.*$)/gm, '<h1 style="margin: 2rem 0 1.2rem; color: var(--fg); font-size: 1.5rem; font-weight: 700; text-align: center; border: 2px solid var(--accent); padding: 1rem; border-radius: 8px;">$1</h1>');
+      
+      // 2. Horizontal rules
+      result = result.replace(/^---$/gm, '<hr style="border: none; height: 2px; background: linear-gradient(90deg, var(--accent), transparent); margin: 2rem 0;">');
+      
+      // 3. Lists
+      result = result.replace(/^- (.*$)/gm, '<li style="margin: 0.4rem 0; color: var(--muted); line-height: 1.5; position: relative; padding-left: 1.2rem;">$1</li>');
+      
+      // 4. Group list items
+      result = result.replace(/(<li[^>]*>.*<\/li>)(\s*<li[^>]*>.*<\/li>)*/g, function(match) {
+        return `<ul style="margin: 1rem 0; padding-left: 0; list-style: none;">${match}</ul>`;
+      });
+      
+      // 5. Inline formatting
+      result = result.replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--accent); font-weight: 600; background: rgba(var(--accent-rgb), 0.1); padding: 0.1rem 0.3rem; border-radius: 3px;">$1</strong>');
+      result = result.replace(/(?<!\*)\*(?!\*)([^*]+?)\*(?!\*)/g, '<em style="color: var(--muted); font-style: italic; font-weight: 500;">$1</em>');
+      result = result.replace(/`([^`]+)`/g, '<code style="background: var(--bg-secondary); color: var(--accent); padding: 0.2rem 0.4rem; border-radius: 4px; font-family: \'Monaco\', \'Menlo\', monospace; font-size: 0.9em; border: 1px solid var(--border);">$1</code>');
+      
+      // 6. Paragraphs
+      const lines = result.split('\n');
+      const processedLines = [];
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.trim() === '') {
+          processedLines.push('');
+        } else if (line.startsWith('<')) {
+          processedLines.push(line);
+        } else {
+          processedLines.push(`<p style="margin: 0.8rem 0; color: var(--muted); line-height: 1.6;">${line}</p>`);
+        }
+      }
+      
+      result = processedLines.join('\n');
+      
+      // 7. Clean up
+      result = result
+        .replace(/<p[^>]*><\/p>/g, '')
+        .replace(/<p[^>]*>(<h[1-3][^>]*>.*<\/h[1-3]>)<\/p>/g, '$1')
+        .replace(/<p[^>]*>(<ul[^>]*>.*<\/ul>)<\/p>/g, '$1')
+        .replace(/<p[^>]*>(<hr[^>]*>)<\/p>/g, '$1');
+      
+      console.log('✅ PARSED RESULT:', result.substring(0, 200) + '...');
+      return result;
+    }
+    
+    // Make function available globally for testing
+    window.parseMarkdown = parseMarkdown;
+
     function renderInitialSearch() {
       qs('#mainContent').innerHTML = `
         <div class="centered-search">
@@ -267,7 +331,8 @@
       // Improved chat bubble style and scroll
       const historyHtml = chatHistory.slice(0, -1).map((msg, i) => {
         const isUser = msg.role === 'user';
-        return `<div class=\"chat-bubble ${isUser ? 'user-bubble' : 'ai-bubble'}\">\n      <div class=\"chat-meta\">${isUser ? 'You' : 'AI'}</div>\n      <div class=\"chat-text\">${msg.content}</div>\n    </div>`;
+        const content = isUser ? msg.content : parseMarkdown(msg.content);
+        return `<div class=\"chat-bubble ${isUser ? 'user-bubble' : 'ai-bubble'}\">\n      <div class=\"chat-meta\">${isUser ? 'You' : 'AI'}</div>\n      <div class=\"chat-text\">${content}</div>\n    </div>`;
       }).join('');
       // Add thinking bubble if loading
       const thinkingHtml = isThinking ? `<div class=\"chat-bubble ai-bubble\"><div class=\"chat-meta\">AI</div><div class=\"chat-text\"><span class=\"thinking-spinner\"></span> Thinking...</div></div>` : '';
@@ -279,7 +344,7 @@
               ${historyHtml}
               ${thinkingHtml}
             </div>
-            <div id=\"currentSummary\">${isThinking ? '' : summary}</div>
+            <div id=\"currentSummary\">${isThinking ? '' : parseMarkdown(summary)}</div>
           </div>
           <div class=\"panel panel-right\" id=\"resultsPanel\">
             ${results.map(renderResultCard).join('')}

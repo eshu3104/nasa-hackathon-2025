@@ -16,21 +16,21 @@ ROLE_SYSTEM_PROMPTS = {
     "Student": "You are explaining to a student. Give simple takeaways, what was done, and why it matters."
 }
 
-def gpt5_mini_chat(messages: List[Dict[str, str]], max_tokens: int = 400, temperature: float = 0.0) -> str:
-    """Chat with GPT-5-mini model for advanced reasoning and summarization."""
+def gpt4o_mini_chat(messages: List[Dict[str, str]], max_tokens: int = 400, temperature: float = 0.0) -> str:
+    """Chat with GPT-4o-mini model for advanced reasoning and summarization."""
     if not openai.api_key:
         raise ValueError("OPENAI_API_KEY environment variable not set. Make sure it's in your .env file")
     
     client = openai.OpenAI()
     resp = client.chat.completions.create(
-        model="gpt-5-mini",
+        model="gpt-4o-mini",
         messages=messages,
         temperature=temperature,
         max_tokens=max_tokens
     )
     return resp.choices[0].message.content.strip()
 
-def gpt4o_mini_chat(messages: List[Dict[str, str]], max_tokens: int = 400, temperature: float = 0.0) -> str:
+def gpt4o_mini_fallback(messages: List[Dict[str, str]], max_tokens: int = 400, temperature: float = 0.0) -> str:
     """Fallback chat with GPT-4o-mini model."""
     if not openai.api_key:
         raise ValueError("OPENAI_API_KEY environment variable not set. Make sure it's in your .env file")
@@ -96,7 +96,26 @@ def summarize_documents_single_call(search_results: List[tuple], chunks_data: Li
     all_docs_text = "\n\n" + "="*80 + "\n\n".join(documents_content)
     
     user_prompt = f"""
-Analyze the following research documents and write a concise, readable summary in 1-2 paragraphs, synthesizing the main findings and insights from all the publications. Do not use bullet points or lists. The summary should be natural and informative, as if written by an expert for a general audience. At the end, mention the top 3 most relevant sources (with their titles) and briefly explain why they are important.
+You are analyzing excerpts from multiple NASA space biology publications. 
+Your task is to generate a precise, concise, and expert-level synthesis of the findings in **beautiful Markdown format**.  
+
+### Instructions:
+1. **Accuracy First**: Focus only on what the data and experiments actually show.  
+2. **Detail**: Capture methods, key results, and major conclusions (numerical outcomes, datasets, or trends).  
+3. **Conciseness**: Summarize in 2–3 tight paragraphs, no redundancy.  
+4. **Integration**: Synthesize across studies — highlight overlaps, differences, and key themes rather than summarizing each paper individually.  
+5. **Role Adaptation**: Emphasize aspects relevant to the user's role (Researcher, Funding Manager, Student).  
+6. **Enhanced Markdown Formatting**:  
+   - Use `## Key Findings` as the main heading for the primary synthesis
+   - Use `### Research Gaps` or `### Applications` for secondary sections
+   - Use **bold** for important terms, key findings, and numerical results
+   - Use *italics* for emphasis on specific concepts or methodologies
+   - Use `code formatting` for technical terms, gene names, or specific measurements
+   - Use bullet points for lists of key findings, applications, or research gaps
+   - Use numbered lists for sequential processes or methodologies
+   - Include horizontal rules (`---`) to separate major sections
+7. **Citations**: At the end, include a `## Top 3 Relevant Sources` section with the titles in bullet points and one sentence each explaining why they matter.  
+8. **Structure**: Organize content with clear visual hierarchy using headings, bold text, and appropriate spacing.
 
 DOCUMENTS TO ANALYZE:
 {all_docs_text}
@@ -117,10 +136,10 @@ DOCUMENTS TO ANALYZE:
     ]
     
     try:
-        print(f"🤖 Calling GPT-5-mini with {len(messages[1]['content'])} characters of content...")
+        print(f"🤖 Calling GPT-4o-mini with {len(messages[1]['content'])} characters of content...")
         # Single GPT call for everything!
-        final_summary = gpt5_mini_chat(messages, max_tokens=800)
-        print(f"✅ GPT-5-mini response received: {len(final_summary)} characters")
+        final_summary = gpt4o_mini_chat(messages, max_tokens=800)
+        print(f"✅ GPT-4o-mini response received: {len(final_summary)} characters")
         
         return {
             'final_summary': final_summary,
@@ -129,12 +148,12 @@ DOCUMENTS TO ANALYZE:
         }
         
     except Exception as e:
-        print(f"❌ Error in GPT-5-mini call: {e}")
-        print(f"🔄 Falling back to GPT-4o-mini...")
+        print(f"❌ Error in GPT-4o-mini call: {e}")
+        print(f"🔄 Falling back to GPT-4o-mini fallback...")
         
-        # Fallback to GPT-4o-mini
+        # Fallback to GPT-4o-mini fallback
         try:
-            final_summary = gpt4o_mini_chat(messages, max_tokens=800)
+            final_summary = gpt4o_mini_fallback(messages, max_tokens=800)
             print(f"✅ GPT-4o-mini fallback successful: {len(final_summary)} characters")
             
             return {

@@ -9,6 +9,9 @@
       --fg:#f2f2f2; --muted:#b3b3b3;
       --card:#141414; --radius:14px; --border:#2a2a2a;
       --accent:#ffffff;          /* buttons/primary */
+      --accent-rgb: 255, 255, 255; /* RGB values for rgba() */
+      --accent-light:#f0f0f0;     /* lighter accent for gradients */
+      --bg-secondary:#1a1a1a;     /* secondary background */
       --focus:#EFF9F0;           /* search focus outline */
     }
     body{
@@ -123,30 +126,138 @@
     .empty{ color:var(--muted); text-align:center; margin:18px 0 28px; }
     footer{ margin:32px 0 8px; text-align:center; color:var(--muted); font-size:.9rem;     }
 
-    /* Markdown rendering styles */
+    /* Enhanced Markdown rendering styles */
+    #aiSummary {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 1rem 0;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
     #aiSummary h1, #aiSummary h2, #aiSummary h3 {
       scroll-margin-top: 2rem;
     }
     
+    #aiSummary h1 {
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      color: white;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+    
+    #aiSummary h2 {
+      position: relative;
+    }
+    
+    #aiSummary h2::after {
+      content: '';
+      position: absolute;
+      bottom: -0.5rem;
+      left: 0;
+      width: 3rem;
+      height: 2px;
+      background: var(--accent);
+    }
+    
+    #aiSummary h3 {
+      position: relative;
+    }
+    
+    #aiSummary h3::before {
+      content: '▶';
+      color: var(--accent);
+      margin-right: 0.5rem;
+    }
+    
     #aiSummary strong {
       font-weight: 600;
+      position: relative;
     }
     
     #aiSummary em {
       font-style: italic;
+      color: var(--accent);
+    }
+    
+    #aiSummary code {
+      font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+      font-size: 0.9em;
+      position: relative;
+    }
+    
+    #aiSummary code::before {
+      content: '`';
+      color: var(--accent);
+      font-weight: bold;
+    }
+    
+    #aiSummary code::after {
+      content: '`';
+      color: var(--accent);
+      font-weight: bold;
+    }
+    
+    #aiSummary ul {
+      position: relative;
+    }
+    
+    #aiSummary li {
+      position: relative;
+    }
+    
+    #aiSummary li::before {
+      content: '•';
+      color: var(--accent);
+      font-weight: bold;
+      position: absolute;
+      left: -1.2rem;
+    }
+    
+    #aiSummary li:nth-child(odd)::before {
+      content: '◦';
     }
     
     #aiSummary a {
       transition: all 0.2s ease;
+      position: relative;
     }
     
     #aiSummary a:hover {
       color: var(--fg) !important;
       border-bottom-color: var(--fg) !important;
+      transform: translateY(-1px);
+    }
+    
+    #aiSummary hr {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    #aiSummary hr::after {
+      content: '✦';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--bg-secondary);
+      color: var(--accent);
+      padding: 0 1rem;
+      font-size: 1.2rem;
     }
     
     #aiSummary p:last-child {
       margin-bottom: 0;
+    }
+    
+    #aiSummary blockquote {
+      border-left: 4px solid var(--accent);
+      padding-left: 1rem;
+      margin: 1rem 0;
+      font-style: italic;
+      background: rgba(var(--accent-rgb), 0.05);
+      padding: 1rem;
+      border-radius: 0 8px 8px 0;
     }
     
     #aiSummary div:last-child {
@@ -223,9 +334,61 @@
   </div>
 
     <script>
+    
     /** ---------- API Configuration ---------- */
     const API_BASE = 'http://localhost:5000/api';
     let PUBLICATIONS = []; // Will be loaded from trending endpoint
+
+    /** ---------- Simple Markdown Parser ---------- */
+    function parseMarkdown(text) {
+      if (!text) return '';
+      
+      let result = text;
+      
+      // Headers
+      result = result.replace(/^## (.*$)/gm, '<h2 style="color: var(--fg); font-size: 1.3rem; font-weight: 700; margin: 1.5rem 0 1rem; border-bottom: 2px solid var(--accent); padding-bottom: 0.5rem;">$1</h2>');
+      result = result.replace(/^### (.*$)/gm, '<h3 style="color: var(--fg); font-size: 1.1rem; font-weight: 600; margin: 1.2rem 0 0.6rem; border-left: 3px solid var(--accent); padding-left: 0.8rem;">$1</h3>');
+      
+      // Horizontal rules
+      result = result.replace(/^---$/gm, '<hr style="border: none; height: 2px; background: linear-gradient(90deg, var(--accent), transparent); margin: 2rem 0;">');
+      
+      // Lists
+      result = result.replace(/^- (.*$)/gm, '<li style="margin: 0.4rem 0; color: var(--muted); line-height: 1.5; padding-left: 1.2rem;">$1</li>');
+      
+      // Group list items
+      result = result.replace(/(<li[^>]*>.*<\/li>)(\s*<li[^>]*>.*<\/li>)*/g, function(match) {
+        return `<ul style="margin: 1rem 0; padding-left: 0; list-style: none;">${match}</ul>`;
+      });
+      
+      // Bold text
+      result = result.replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--accent); font-weight: 600;">$1</strong>');
+      
+      // Paragraphs
+      const lines = result.split('\n');
+      const processedLines = [];
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.trim() === '') {
+          processedLines.push('');
+        } else if (line.startsWith('<')) {
+          processedLines.push(line);
+        } else {
+          processedLines.push(`<p style="margin: 0.8rem 0; color: var(--muted); line-height: 1.6;">${line}</p>`);
+        }
+      }
+      
+      result = processedLines.join('\n');
+      
+      // Clean up
+      result = result
+        .replace(/<p[^>]*><\/p>/g, '')
+        .replace(/<p[^>]*>(<h[1-3][^>]*>.*<\/h[1-3]>)<\/p>/g, '$1')
+        .replace(/<p[^>]*>(<ul[^>]*>.*<\/ul>)<\/p>/g, '$1')
+        .replace(/<p[^>]*>(<hr[^>]*>)<\/p>/g, '$1');
+      
+      return result;
+    }
 
     /** ---------- Helpers ---------- */
     const qs = (sel, el=document) => el.querySelector(sel);
@@ -256,39 +419,209 @@
     function parseMarkdown(text) {
       if (!text) return '';
       
-      return text
-        // Escape HTML to prevent XSS
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        
-        // Headers (order matters - most specific first)
-        .replace(/^### (.*$)/gim, '<h3 style="margin: 1rem 0 0.5rem; color: var(--fg); font-size: 1.1rem; font-weight: 600;">$1</h3>')
-        .replace(/^## (.*$)/gim, '<h2 style="margin: 1.2rem 0 0.8rem; color: var(--fg); font-size: 1.2rem; font-weight: 600;">$1</h2>')
-        .replace(/^# (.*$)/gim, '<h1 style="margin: 1.5rem 0 1rem; color: var(--fg); font-size: 1.3rem; font-weight: 600;">$1</h1>')
-        
-        // Bold text
-        .replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--accent); font-weight: 600;">$1</strong>')
-        
-        // Italic text (but not bold)
-        .replace(/(?<!\*)\*(?!\*)([^*]+?)\*(?!\*)/g, '<em style="color: var(--muted); font-style: italic;">$1</em>')
-        
-  // Remove numbered and bullet list formatting to keep summary as paragraphs
-        
-        // Links
-        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent);" target="_blank" rel="noopener">$1</a>')
-        
-        // Line breaks and paragraphs
-        .replace(/\n\n/g, '</p><p style="margin: 0.8rem 0; color: var(--muted); line-height: 1.6;">')
-        .replace(/\n/g, '<br>')
-        
-        // Wrap remaining text in paragraphs (but not already wrapped content)
-        .replace(/^(?!<[h1-3]|<div|<p)(.*)$/gim, '<p style="margin: 0.8rem 0; color: var(--muted); line-height: 1.6;">$1</p>')
-        
-        // Clean up empty paragraphs and fix nesting
+      console.log('🎯 PARSING MARKDOWN:', text.substring(0, 100) + '...');
+      
+      // Simple, robust approach
+      let result = text;
+      
+      // 1. Headers
+      result = result.replace(/^### (.*$)/gm, '<h3 style="margin: 1.2rem 0 0.6rem; color: var(--fg); font-size: 1.1rem; font-weight: 600; border-left: 3px solid var(--accent); padding-left: 0.8rem;">$1</h3>');
+      result = result.replace(/^## (.*$)/gm, '<h2 style="margin: 1.5rem 0 1rem; color: var(--fg); font-size: 1.3rem; font-weight: 700; border-bottom: 2px solid var(--accent); padding-bottom: 0.5rem;">$1</h2>');
+      result = result.replace(/^# (.*$)/gm, '<h1 style="margin: 2rem 0 1.2rem; color: var(--fg); font-size: 1.5rem; font-weight: 700; text-align: center; border: 2px solid var(--accent); padding: 1rem; border-radius: 8px;">$1</h1>');
+      
+      // 2. Horizontal rules
+      result = result.replace(/^---$/gm, '<hr style="border: none; height: 2px; background: linear-gradient(90deg, var(--accent), transparent); margin: 2rem 0;">');
+      
+      // 3. Lists
+      result = result.replace(/^- (.*$)/gm, '<li style="margin: 0.4rem 0; color: var(--muted); line-height: 1.5; position: relative; padding-left: 1.2rem;">$1</li>');
+      
+      // 4. Group list items
+      result = result.replace(/(<li[^>]*>.*<\/li>)(\s*<li[^>]*>.*<\/li>)*/g, function(match) {
+        return `<ul style="margin: 1rem 0; padding-left: 0; list-style: none;">${match}</ul>`;
+      });
+      
+      // 5. Inline formatting
+      result = result.replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--accent); font-weight: 600; background: rgba(var(--accent-rgb), 0.1); padding: 0.1rem 0.3rem; border-radius: 3px;">$1</strong>');
+      result = result.replace(/(?<!\*)\*(?!\*)([^*]+?)\*(?!\*)/g, '<em style="color: var(--muted); font-style: italic; font-weight: 500;">$1</em>');
+      result = result.replace(/`([^`]+)`/g, '<code style="background: var(--bg-secondary); color: var(--accent); padding: 0.2rem 0.4rem; border-radius: 4px; font-family: \'Monaco\', \'Menlo\', monospace; font-size: 0.9em; border: 1px solid var(--border);">$1</code>');
+      
+      // 6. Paragraphs
+      const lines = result.split('\n');
+      const processedLines = [];
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.trim() === '') {
+          processedLines.push('');
+        } else if (line.startsWith('<')) {
+          processedLines.push(line);
+        } else {
+          processedLines.push(`<p style="margin: 0.8rem 0; color: var(--muted); line-height: 1.6;">${line}</p>`);
+        }
+      }
+      
+      result = processedLines.join('\n');
+      
+      // 7. Clean up
+      result = result
         .replace(/<p[^>]*><\/p>/g, '')
         .replace(/<p[^>]*>(<h[1-3][^>]*>.*<\/h[1-3]>)<\/p>/g, '$1')
-        .replace(/<p[^>]*>(<div[^>]*>.*<\/div>)<\/p>/g, '$1');
+        .replace(/<p[^>]*>(<ul[^>]*>.*<\/ul>)<\/p>/g, '$1')
+        .replace(/<p[^>]*>(<hr[^>]*>)<\/p>/g, '$1');
+      
+      console.log('✅ PARSED RESULT:', result.substring(0, 200) + '...');
+      return result;
+    }
+    
+    // Simple test function
+    function simpleTest() {
+      console.log('🧪 SIMPLE TEST RUNNING');
+      const test = parseMarkdown('## Test\n- **Bold**\n---');
+      console.log('Test result:', test);
+      return test;
+    }
+    
+    // Make functions available globally
+    window.parseMarkdown = parseMarkdown;
+    window.simpleTest = simpleTest;
+    
+    console.log('🔧 FUNCTIONS DEFINED:', {
+      parseMarkdown: typeof parseMarkdown,
+      simpleTest: typeof simpleTest
+    });
+    
+    // Test function to verify markdown parsing
+    function testMarkdownParser() {
+      console.log('🧪 TESTING NEW MARKDOWN PARSER');
+      console.log('================================');
+      
+      const testText = `## Key Findings Recent studies on NASA's space biology initiatives have highlighted significant advancements in automated phenotyping and plant growth systems aboard the International Space Station (ISS). The **Compact Imaging Platform (CIP)** for *Caenorhabditis elegans* (C. elegans) assays demonstrated effective temperature control and phenotypic analysis capabilities, achieving average forward speeds of **0.14 mm/s** and **2.30 mm/s** for crawling and swimming, respectively. The platform's ability to distinguish between wild-type and mutant strains (e.g., unc-32(e189) and unc-79(e1068)) was validated through behavioral assays, revealing significant differences in thrashing frequencies, with values of **1.57**, **0.07**, and **1.29** for wild-type, unc-32, and unc-79 mutants, respectively. This versatility positions the CIP as a valuable tool for future space biology research, particularly in understanding the effects of microgravity on organism behavior. In parallel, the **Advanced Plant Habitat (APH)** has been validated for plant growth experiments, successfully controlling environmental parameters such as light intensity and CO2 concentration over a **135-day** experimental period. The APH facilitated the growth of *Arabidopsis thaliana* and wheat, with the ability to measure canopy photosynthesis and respiration rates through non-invasive techniques. The hardware's performance confirmed its capability to support fundamental plant research in microgravity, with significant implications for long-duration space missions. 
+
+--- 
+
+### Research Gaps Despite these advancements, several research gaps remain: 
+- **Limited Whole-Organism Data**: Current studies primarily focus on gene expression and fluorescent markers, lacking comprehensive whole-organism phenotypic data, particularly for C. elegans in space. 
+- **Hardware Limitations**: Existing imaging systems on the ISS are bulky and require extensive crew training, highlighting the need for more compact, user-friendly solutions like the CIP. 
+- **Integration of Advanced Technologies**: Future iterations of the CIP could benefit from integrating high-magnification optics and real-time image analysis capabilities to enhance phenotyping depth. 
+
+--- 
+
+### Applications The findings from these studies have broad applications: 
+- **Space Biology Research**: The CIP and APH can facilitate the study of biological responses to microgravity, aiding in the development of life support systems for long-duration space missions. 
+- **Educational Tools**: The CIP's low-cost and user-friendly design makes it suitable for educational settings, promoting hands-on learning in genetics and phenotyping. 
+- **Agricultural Innovations**: Insights gained from plant growth studies in microgravity can inform agricultural practices on Earth, particularly in controlled environment agriculture. 
+
+--- 
+
+## Top 3 Relevant Sources 
+- **"A Compact Imaging Platform for Conducting C. elegans Phenotypic Assays on Earth and in Spaceflight"**: This study details the development and validation of the CIP, emphasizing its potential for space biology research. 
+- **"Hardware validation of the Advanced Plant Habitat on ISS: Canopy photosynthesis in reduced gravity"**: This paper reports on the successful operation of the APH, showcasing its capabilities for plant research in microgravity. 
+- **"Epigenomic regulators elongator complex subunit 2 and methyltransferase 1 differentially condition the spaceflight response in Arabidopsis"**: This research explores the genetic responses of plants to spaceflight conditions, contributing to our understanding of plant biology in microgravity.`;
+
+      console.log('📝 Input text length:', testText.length, 'characters');
+      console.log('📝 Input text preview:', testText.substring(0, 200) + '...');
+      
+      const result = parseMarkdown(testText);
+      
+      console.log('✅ PARSING COMPLETE');
+      console.log('📊 Result length:', result.length, 'characters');
+      console.log('📊 Result preview:', result.substring(0, 300) + '...');
+      
+      // Check for specific elements
+      const hasH2 = result.includes('<h2');
+      const hasH3 = result.includes('<h3');
+      const hasLists = result.includes('<ul');
+      const hasBold = result.includes('<strong');
+      const hasItalic = result.includes('<em');
+      const hasHR = result.includes('<hr');
+      
+      console.log('🔍 ELEMENT DETECTION:');
+      console.log('  - H2 headers:', hasH2 ? '✅' : '❌');
+      console.log('  - H3 headers:', hasH3 ? '✅' : '❌');
+      console.log('  - Lists:', hasLists ? '✅' : '❌');
+      console.log('  - Bold text:', hasBold ? '✅' : '❌');
+      console.log('  - Italic text:', hasItalic ? '✅' : '❌');
+      console.log('  - Horizontal rules:', hasHR ? '✅' : '❌');
+      
+      return result;
+    }
+
+    // Simple test function that can be run directly
+    function quickTest() {
+      const testText = `## Key Findings This is a test.
+### Research Gaps 
+- **Test item 1**: This is a test list item.
+- **Test item 2**: This is another test list item.
+
+--- 
+
+## Top 3 Sources 
+- **Source 1**: This is a test source.`;
+
+      console.log('🧪 QUICK TEST STARTING');
+      console.log('Input:', testText);
+      
+      const result = parseMarkdown(testText);
+      
+      console.log('Output:', result);
+      console.log('Has H2:', result.includes('<h2'));
+      console.log('Has H3:', result.includes('<h3'));
+      console.log('Has lists:', result.includes('<ul'));
+      console.log('Has bold:', result.includes('<strong'));
+      console.log('Has HR:', result.includes('<hr'));
+      
+      return result;
+    }
+
+    // Make functions available globally for testing
+    window.testMarkdownParser = testMarkdownParser;
+    window.quickTest = quickTest;
+    window.parseMarkdown = parseMarkdown;
+    
+    // Debug: Check if functions are defined
+    console.log('🔧 DEBUG: Functions defined:', {
+      parseMarkdown: typeof parseMarkdown,
+      testMarkdownParser: typeof testMarkdownParser,
+      quickTest: typeof quickTest
+    });
+    
+    // Simple inline test
+    console.log('🧪 RUNNING INLINE TEST');
+    try {
+      const testResult = parseMarkdown('## Test\n- **Bold**\n---');
+      console.log('✅ Inline test result:', testResult);
+    } catch (error) {
+      console.error('❌ Inline test failed:', error);
+    }
+    
+    // Test with actual summary format
+    console.log('🧪 TESTING WITH ACTUAL SUMMARY FORMAT');
+    try {
+      const actualSummary = `## Key Findings
+
+Recent studies on the effects of radiation in space have highlighted significant biological responses in both animal and plant models. In **Arabidopsis thaliana**, gene regulatory networks were analyzed using transcriptional responses to ionizing radiation, revealing **18 radiation-induced genes** and **16 non-radiation-induced genes** involved in DNA damage response and stress adaptation.
+
+---
+
+### Research Gaps
+
+- **Longitudinal Studies**: There is a need for extended studies to assess the long-term effects of radiation on both plant and animal models, particularly in the context of spaceflight.
+- **Mechanistic Insights**: Further research is required to elucidate the specific molecular mechanisms by which non-radiation-induced genes contribute to DNA damage responses and stress adaptation in plants.
+
+---
+
+## Top 3 Relevant Sources
+
+- **"Detection of Genes in Arabidopsis thaliana L. Responding to DNA Damage from Radiation and Other Stressors in Spaceflight"**: This study provides critical insights into the gene regulatory networks involved in plant responses to radiation, essential for understanding plant resilience in space.`;
+
+      const actualResult = parseMarkdown(actualSummary);
+      console.log('✅ Actual summary test result:', actualResult);
+      console.log('Has H2:', actualResult.includes('<h2'));
+      console.log('Has H3:', actualResult.includes('<h3'));
+      console.log('Has lists:', actualResult.includes('<ul'));
+      console.log('Has bold:', actualResult.includes('<strong'));
+    } catch (error) {
+      console.error('❌ Actual summary test failed:', error);
     }
 
     async function searchAPI(query, role = 'Researcher') {
@@ -378,12 +711,18 @@
       if (data.results && data.results.length > 0) {
         // Show AI summary if available (before results)
         if (data.summary && data.summary !== 'Search service unavailable.') {
+          console.log('🎯 DISPLAYING AI SUMMARY');
+          console.log('Raw summary:', data.summary);
+          
+          const parsedSummary = parseMarkdown(data.summary);
+          console.log('Parsed summary:', parsedSummary);
+          
           const summaryDiv = document.createElement('div');
           summaryDiv.id = 'aiSummary';
           summaryDiv.style.cssText = 'background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin: 1rem 0; box-shadow: 0 0 18px rgba(0,0,0,.45);';
           summaryDiv.innerHTML = `
             <h3 style="margin: 0 0 1rem; color: var(--fg); font-size: 1.2rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">🤖 AI Summary</h3>
-            <div style="color: var(--muted); line-height: 1.6;">${parseMarkdown(data.summary)}</div>
+            <div style="color: var(--muted); line-height: 1.6;">${parsedSummary}</div>
           `;
           grid.parentNode.insertBefore(summaryDiv, grid);
         }
