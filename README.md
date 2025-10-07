@@ -2,7 +2,7 @@
 
 **Team Major Tom** | NASA SpaceApps Hackathon 2025 | Victoria, BC
 
-An AI-powered semantic search and summarization platform for NASA's Space Biology research papers. Built for researchers, funding managers, and students to quickly discover and understand insights from 600+ scientific publications.
+An AI-powered semantic search and summarization platform for NASA's Space Biology research papers. Built for researchers and funding managers to quickly discover and understand insights from 600+ scientific publications.
 
 ---
 
