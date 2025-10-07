@@ -11,13 +11,13 @@ An AI-powered semantic search and summarization platform for NASA's Space Biolog
 Skynet Knowledge Engine transforms how people interact with NASA's vast collection of space biology research. Instead of manually sifting through hundreds of papers, users can:
 
 - **Ask natural language questions** and get relevant research instantly
-- **Receive AI-generated summaries** tailored to their role (Researcher, Manager, or Student)
+- **Receive AI-generated summaries** tailored to their role (Researcher or Funding Manager)
 - **Explore 11,460+ document chunks** from 608 NASA publications
 - **Continue conversations** with follow-up questions to dive deeper
 
 ### Key Features
 
-- **Role-Based Summaries**: Customized AI responses based on whether you're a researcher (technical detail), funding manager (applications/impact), or student (educational focus)
+- **Role-Based Summaries**: Customized AI responses based on whether you're a researcher (technical detail), funding manager (applications/impact)
 - **Semantic Search**: Powered by OpenAI embeddings and summaries
 - **Interactive Chat**: Ask follow-up questions and build on previous answers
 - **Beautiful UI**: Modern, space-themed interface with smooth animations
@@ -35,11 +35,6 @@ Skynet Knowledge Engine transforms how people interact with NASA's vast collecti
 *"What are the commercial applications of plant research in space?"*
 - Understand real-world impact and funding opportunities
 - See which research areas have the most potential for development
-
-### For Students
-*"How does radiation affect astronauts?"*
-- Learn fundamentals with clear, accessible explanations
-- Build foundational knowledge for future studies
 
 ---
 
